@@ -98,6 +98,8 @@ void appendSegmentPatternBreaks(const std::vector<CodepointInfo>& cps, const Lan
 
 void appendApostropheContractionBreaks(const std::vector<CodepointInfo>& cps,
                                        std::vector<Hyphenator::BreakInfo>& outBreaks) {
+  constexpr size_t kMinLeftSegmentLen = 3;
+  constexpr size_t kMinRightSegmentLen = 2;
   size_t segmentStart = 0;
 
   for (size_t i = 0; i < cps.size(); ++i) {
@@ -111,8 +113,15 @@ void appendApostropheContractionBreaks(const std::vector<CodepointInfo>& cps,
           }
         }
 
-        // Avoid stranding very short clitics like "l'" or "d'" at line end.
-        if (leftPrefixLen >= 3) {
+        size_t rightSuffixLen = 0;
+        for (size_t j = i + 1; j < cps.size() && !isSegmentSeparator(cps[j].value); ++j) {
+          if (isAlphabetic(cps[j].value)) {
+            ++rightSuffixLen;
+          }
+        }
+
+        // Avoid stranding short clitics like "l'"/"d'" or tiny suffixes like "'t".
+        if (leftPrefixLen >= kMinLeftSegmentLen && rightSuffixLen >= kMinRightSegmentLen) {
           outBreaks.push_back({cps[i + 1].byteOffset, false});
         }
       }
