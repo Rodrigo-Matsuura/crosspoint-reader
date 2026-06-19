@@ -417,7 +417,7 @@ void WifiSelectionActivity::loop() {
       requestUpdate();
       return;
     }
-    // Touch: down-select highlights the pressed network, tap selects it (like Confirm).
+    // Touch: stable press highlights; tap selects it (like Confirm). Drag/scroll contacts do not preselect a row.
     int downId = -1;
     if (mappedInput.wasItemTouchedDown(downId) && downId >= 0 && downId < static_cast<int>(networks.size())) {
       selectedNetworkIndex = downId;

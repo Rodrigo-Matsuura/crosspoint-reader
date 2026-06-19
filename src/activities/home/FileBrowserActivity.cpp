@@ -214,8 +214,6 @@ void FileBrowserActivity::loop() {
     return;
   }
 
-  // Touch-down moves the selector to the pressed entry (shows selected state); release
-  // opens it below.
   int downId = -1;
   if (mappedInput.wasItemTouchedDown(downId) && downId >= 0 && downId < static_cast<int>(files.size())) {
     selectorIndex = downId;

@@ -1,8 +1,9 @@
-#include "Logging.h"
-
+#include <BoardConfig.h>
 #include <esp_rom_sys.h>
 
 #include <string>
+
+#include "Logging.h"
 
 #define MAX_ENTRY_LEN 256
 #define MAX_LOG_LINES 16
@@ -61,12 +62,13 @@ void logPrintf(const char* level, const char* origin, const char* format, ...) {
     }
   }
   va_end(args);
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
-  // ESP32-S3 over USB-Serial-JTAG (HWCDC): Serial's `operator bool` reads false under a
-  // host monitor (and HWCDC.write itself drops when it thinks it's disconnected), so the
-  // `if (logSerial)` path below silently swallows every line. esp_rom_printf writes to the
-  // always-on ROM/IDF console — the same channel that carries the boot banner and ARDUHAL
-  // logs — so output is actually visible. `buf` is already fully formatted; pass via %s.
+#if FREEINK_LOG_TRANSPORT == FREEINK_LOG_TRANSPORT_USB_CDC_WRITE
+  // Native USB CDC can report false while PlatformIO monitor is attached on
+  // boards like LilyGo T5 S3, so write directly to the CDC object.
+  logSerial.write(reinterpret_cast<const uint8_t*>(buf), strnlen(buf, sizeof(buf)));
+#elif FREEINK_LOG_TRANSPORT == FREEINK_LOG_TRANSPORT_ROM_PRINTF
+  // IDF/ROM console path for boards whose monitor is attached there during
+  // bring-up, e.g. Sticky.
   esp_rom_printf("%s", buf);
 #else
   if (logSerial) {

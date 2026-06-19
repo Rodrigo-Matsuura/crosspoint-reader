@@ -1,6 +1,7 @@
 #pragma once
 
 #include <HalStorage.h>
+#include <freertos/semphr.h>
 
 #include <algorithm>
 #include <deque>
@@ -54,6 +55,7 @@ class BookMetadataCache {
   // Temp file handles during build
   HalFile spineFile;
   HalFile tocFile;
+  SemaphoreHandle_t ioMutex;
 
   // Index for fast href→spineIndex lookup (used only for large EPUBs)
   struct SpineHrefIndexEntry {
@@ -85,8 +87,14 @@ class BookMetadataCache {
   BookMetadata coreMetadata;
 
   explicit BookMetadataCache(std::string cachePath)
-      : cachePath(std::move(cachePath)), lutOffset(0), spineCount(0), tocCount(0), loaded(false), buildMode(false) {}
-  ~BookMetadataCache() = default;
+      : cachePath(std::move(cachePath)),
+        lutOffset(0),
+        spineCount(0),
+        tocCount(0),
+        loaded(false),
+        buildMode(false),
+        ioMutex(xSemaphoreCreateRecursiveMutex()) {}
+  ~BookMetadataCache();
 
   // Building phase (stream to disk immediately)
   bool beginWrite();

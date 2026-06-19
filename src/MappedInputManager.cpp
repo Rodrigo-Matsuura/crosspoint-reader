@@ -63,8 +63,25 @@ bool MappedInputManager::mapButton(const Button button, bool (HalGPIO::*fn)(uint
 // Top-left corner fallback, as a fraction of the logical screen. Generous to hit.
 static constexpr float BACK_GESTURE_FRAC_X = 0.22f;
 static constexpr float BACK_GESTURE_FRAC_Y = 0.12f;
+static constexpr float BOTTOM_EDGE_BACK_GESTURE_FRAC_Y = 0.14f;
+static constexpr unsigned long TOUCH_DOWN_SELECT_DELAY_MS = 90;
+
+bool MappedInputManager::wasBottomEdgeSwipeUp() const {
+  float nxs = 0.0f, nys = 0.0f, nxe = 0.0f, nye = 0.0f;
+  if (!gpio.wasSwipe(nxs, nys, nxe, nye)) return false;
+
+  int sx = 0, sy = 0, ex = 0, ey = 0;
+  renderer.tapToLogical(nxs, nys, sx, sy);
+  renderer.tapToLogical(nxe, nye, ex, ey);
+
+  const int screenHeight = renderer.getScreenHeight();
+  const int bottomEdgeTop = screenHeight - static_cast<int>(screenHeight * BOTTOM_EDGE_BACK_GESTURE_FRAC_Y);
+  return sy >= bottomEdgeTop && ey < sy && std::abs(ey - sy) > std::abs(ex - sx);
+}
 
 bool MappedInputManager::wasBackGesture() const {
+  if (wasBottomEdgeSwipeUp()) return true;
+
   float nx = 0.0f, ny = 0.0f;
   if (!gpio.wasTouchTap(nx, ny)) return false;
   int lx = 0, ly = 0;
@@ -87,10 +104,36 @@ bool MappedInputManager::wasItemTapped(int& id) const {
 
 bool MappedInputManager::wasItemTouchedDown(int& id) const {
   float nx = 0.0f, ny = 0.0f;
-  if (!gpio.wasTouchDown(nx, ny)) return false;
-  int lx = 0, ly = 0;
-  renderer.tapToLogical(nx, ny, lx, ly);
-  return TouchRegistry::getInstance().hitTest(lx, ly, TouchRegistry::Item, id);
+  unsigned long heldMs = 0;
+  if (!gpio.isTouchTapCandidate(nx, ny, heldMs)) {
+    touchSelectTracking = false;
+    touchSelectEmitted = false;
+    touchSelectId = -1;
+    return false;
+  }
+
+  if (!touchSelectTracking) {
+    float downNx = 0.0f, downNy = 0.0f;
+    if (!gpio.wasTouchDown(downNx, downNy)) return false;
+
+    int lx = 0, ly = 0;
+    renderer.tapToLogical(downNx, downNy, lx, ly);
+    int candidateId = -1;
+    if (!TouchRegistry::getInstance().hitTest(lx, ly, TouchRegistry::Item, candidateId)) {
+      touchSelectTracking = false;
+      touchSelectEmitted = false;
+      touchSelectId = -1;
+      return false;
+    }
+    touchSelectTracking = true;
+    touchSelectEmitted = false;
+    touchSelectId = candidateId;
+  }
+
+  if (touchSelectEmitted || heldMs < TOUCH_DOWN_SELECT_DELAY_MS) return false;
+  touchSelectEmitted = true;
+  id = touchSelectId;
+  return true;
 }
 
 bool MappedInputManager::wasItemLongPressed(int& id) const {
@@ -122,6 +165,7 @@ bool MappedInputManager::wasCoverTapped(int& id) const {
 bool MappedInputManager::wasListScroll(int& index, int count, int pageItems) const {
   if (count <= 0) return false;
   if (pageItems < 1) pageItems = 1;
+  if (wasBottomEdgeSwipeUp()) return false;
   const SwipeDir swipe = wasSwipe();
   if (swipe == SwipeDir::Up) {
     index = std::min(index + pageItems, count - 1);
@@ -135,6 +179,8 @@ bool MappedInputManager::wasListScroll(int& index, int count, int pageItems) con
 }
 
 MappedInputManager::SwipeDir MappedInputManager::wasSwipe() const {
+  if (wasBottomEdgeSwipeUp()) return SwipeDir::None;
+
   float nxs = 0.0f, nys = 0.0f, nxe = 0.0f, nye = 0.0f;
   if (!gpio.wasSwipe(nxs, nys, nxe, nye)) return SwipeDir::None;
   // Map both endpoints into the logical frame so the direction follows what the

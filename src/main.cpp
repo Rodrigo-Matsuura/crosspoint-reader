@@ -12,6 +12,10 @@
 #include <HalStorage.h>
 #include <HalSystem.h>
 #include <HalTiltSensor.h>
+
+#if defined(FREEINK_DEVICE_LILYGO) && FREEINK_DEVICE_LILYGO
+#include <BoardT5S3.h>
+#endif
 #include <I18n.h>
 #include <Logging.h>
 #include <SPI.h>
@@ -365,6 +369,12 @@ void setup() {
   // (M5Paper) Serial is UART0/HardwareSerial, which has no such method.
   logSerial.setTxTimeoutMs(1);  // This is a load-bearing 1. Do not modify.
 #endif
+#endif
+
+#if defined(FREEINK_DEVICE_LILYGO) && FREEINK_DEVICE_LILYGO
+  // LilyGo T5 S3 board-support owns the shared I2C setup plus non-reader
+  // peripherals that can otherwise contend with SD/display pins.
+  BoardT5S3::begin();
 #endif
 
   HalSystem::begin();

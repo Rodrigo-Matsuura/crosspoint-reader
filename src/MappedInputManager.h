@@ -23,13 +23,14 @@ class MappedInputManager {
   bool wasReleased(Button button) const;
   bool isPressed(Button button) const;
   // Touch "back" gesture: a tap on the theme's header Back target, or in the
-  // top-left corner. Folded into Back's edges, so every screen gets it for free.
+  // top-left corner, or a swipe up from the visible bottom edge. Folded into
+  // Back's edges, so every screen gets it for free.
   bool wasBackGesture() const;
   // True (and writes the id) if a tap this frame hit a TouchRegistry item.
   // Activities treat the id as "select + activate". False on non-touch devices.
   bool wasItemTapped(int& id) const;
-  // Press-edge of wasItemTapped: fires on touch-DOWN over an item so the activity
-  // can show it selected before release. Mirrors button nav (move, then confirm).
+  // Stable touch-down candidate: fires once when a touch remains over an item
+  // briefly without crossing tap slop, so swipes do not show row selection.
   bool wasItemTouchedDown(int& id) const;
   // Subset of wasItemTapped's releases held past the long-press threshold (check
   // this first). Distinguishes tap vs press-and-hold.
@@ -58,4 +59,9 @@ class MappedInputManager {
   GfxRenderer& renderer;
 
   bool mapButton(Button button, bool (HalGPIO::*fn)(uint8_t) const) const;
+  bool wasBottomEdgeSwipeUp() const;
+
+  mutable bool touchSelectTracking = false;
+  mutable bool touchSelectEmitted = false;
+  mutable int touchSelectId = -1;
 };

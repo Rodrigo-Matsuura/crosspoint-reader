@@ -13,7 +13,46 @@ constexpr uint8_t BOOK_CACHE_VERSION = 7;
 constexpr char bookBinFile[] = "/book.bin";
 constexpr char tmpSpineBinFile[] = "/spine.bin.tmp";
 constexpr char tmpTocBinFile[] = "/toc.bin.tmp";
+constexpr uint32_t MAX_CACHE_STRING_LEN = 4096;
+
+bool readStringBounded(HalFile& file, std::string& out, const uint32_t maxLen = MAX_CACHE_STRING_LEN) {
+  uint32_t len = 0;
+  if (file.read(&len, sizeof(len)) != static_cast<int>(sizeof(len))) {
+    return false;
+  }
+  if (len > maxLen || len > static_cast<uint32_t>(file.available())) {
+    LOG_ERR("BMC", "Invalid cache string length: %lu (max=%lu available=%d)", static_cast<unsigned long>(len),
+            static_cast<unsigned long>(maxLen), file.available());
+    return false;
+  }
+  out.clear();
+  if (len == 0) {
+    return true;
+  }
+  out.resize(len);
+  return file.read(out.data(), len) == static_cast<int>(len);
+}
+
+class CacheIoLock {
+ public:
+  explicit CacheIoLock(SemaphoreHandle_t mutex) : mutex(mutex) {
+    if (mutex) xSemaphoreTakeRecursive(mutex, portMAX_DELAY);
+  }
+  ~CacheIoLock() {
+    if (mutex) xSemaphoreGiveRecursive(mutex);
+  }
+
+ private:
+  SemaphoreHandle_t mutex;
+};
 }  // namespace
+
+BookMetadataCache::~BookMetadataCache() {
+  if (ioMutex) {
+    vSemaphoreDelete(ioMutex);
+    ioMutex = nullptr;
+  }
+}
 
 /* ============= WRITING / BUILDING FUNCTIONS ================ */
 
@@ -372,6 +411,7 @@ void BookMetadataCache::createTocEntry(const std::string& title, const std::stri
 /* ============= READING / LOADING FUNCTIONS ================ */
 
 bool BookMetadataCache::load() {
+  CacheIoLock ioLock(ioMutex);
   if (!Storage.openFileForRead("BMC", cachePath + bookBinFile, bookFile)) {
     return false;
   }
@@ -389,11 +429,13 @@ bool BookMetadataCache::load() {
   serialization::readPod(bookFile, spineCount);
   serialization::readPod(bookFile, tocCount);
 
-  serialization::readString(bookFile, coreMetadata.title);
-  serialization::readString(bookFile, coreMetadata.author);
-  serialization::readString(bookFile, coreMetadata.language);
-  serialization::readString(bookFile, coreMetadata.coverItemHref);
-  serialization::readString(bookFile, coreMetadata.textReferenceHref);
+  if (!readStringBounded(bookFile, coreMetadata.title) || !readStringBounded(bookFile, coreMetadata.author) ||
+      !readStringBounded(bookFile, coreMetadata.language) || !readStringBounded(bookFile, coreMetadata.coverItemHref) ||
+      !readStringBounded(bookFile, coreMetadata.textReferenceHref)) {
+    LOG_ERR("BMC", "Invalid cache metadata strings");
+    bookFile.close();
+    return false;
+  }
 
   loaded = true;
   LOG_DBG("BMC", "Loaded cache data: %d spine, %d TOC entries", spineCount, tocCount);
@@ -401,6 +443,7 @@ bool BookMetadataCache::load() {
 }
 
 BookMetadataCache::SpineEntry BookMetadataCache::getSpineEntry(const int index) {
+  CacheIoLock ioLock(ioMutex);
   if (!loaded) {
     LOG_ERR("BMC", "getSpineEntry called but cache not loaded");
     return {};
@@ -415,11 +458,16 @@ BookMetadataCache::SpineEntry BookMetadataCache::getSpineEntry(const int index) 
   bookFile.seek(lutOffset + sizeof(uint32_t) * index);
   uint32_t spineEntryPos;
   serialization::readPod(bookFile, spineEntryPos);
+  if (spineEntryPos >= bookFile.size()) {
+    LOG_ERR("BMC", "Spine entry offset out of range: %lu", static_cast<unsigned long>(spineEntryPos));
+    return {};
+  }
   bookFile.seek(spineEntryPos);
   return readSpineEntry(bookFile);
 }
 
 BookMetadataCache::TocEntry BookMetadataCache::getTocEntry(const int index) {
+  CacheIoLock ioLock(ioMutex);
   if (!loaded) {
     LOG_ERR("BMC", "getTocEntry called but cache not loaded");
     return {};
@@ -434,24 +482,33 @@ BookMetadataCache::TocEntry BookMetadataCache::getTocEntry(const int index) {
   bookFile.seek(lutOffset + sizeof(uint32_t) * spineCount + sizeof(uint32_t) * index);
   uint32_t tocEntryPos;
   serialization::readPod(bookFile, tocEntryPos);
+  if (tocEntryPos >= bookFile.size()) {
+    LOG_ERR("BMC", "TOC entry offset out of range: %lu", static_cast<unsigned long>(tocEntryPos));
+    return {};
+  }
   bookFile.seek(tocEntryPos);
   return readTocEntry(bookFile);
 }
 
 BookMetadataCache::SpineEntry BookMetadataCache::readSpineEntry(HalFile& file) const {
   SpineEntry entry;
-  serialization::readString(file, entry.href);
-  serialization::readPod(file, entry.cumulativeSize);
-  serialization::readPod(file, entry.tocIndex);
+  if (!readStringBounded(file, entry.href) ||
+      file.read(&entry.cumulativeSize, sizeof(entry.cumulativeSize)) != static_cast<int>(sizeof(entry.cumulativeSize)) ||
+      file.read(&entry.tocIndex, sizeof(entry.tocIndex)) != static_cast<int>(sizeof(entry.tocIndex))) {
+    LOG_ERR("BMC", "Invalid spine cache entry");
+    return {};
+  }
   return entry;
 }
 
 BookMetadataCache::TocEntry BookMetadataCache::readTocEntry(HalFile& file) const {
   TocEntry entry;
-  serialization::readString(file, entry.title);
-  serialization::readString(file, entry.href);
-  serialization::readString(file, entry.anchor);
-  serialization::readPod(file, entry.level);
-  serialization::readPod(file, entry.spineIndex);
+  if (!readStringBounded(file, entry.title) || !readStringBounded(file, entry.href) ||
+      !readStringBounded(file, entry.anchor) ||
+      file.read(&entry.level, sizeof(entry.level)) != static_cast<int>(sizeof(entry.level)) ||
+      file.read(&entry.spineIndex, sizeof(entry.spineIndex)) != static_cast<int>(sizeof(entry.spineIndex))) {
+    LOG_ERR("BMC", "Invalid TOC cache entry");
+    return {};
+  }
   return entry;
 }

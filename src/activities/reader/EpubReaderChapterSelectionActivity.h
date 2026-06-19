@@ -19,6 +19,8 @@ class EpubReaderChapterSelectionActivity final : public Activity {
 
   // Total TOC items count
   int getTotalItems() const;
+  void cancelAndFinish();
+  void activateSelection(int index);
 
  public:
   explicit EpubReaderChapterSelectionActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,

@@ -181,7 +181,7 @@ void HomeActivity::loop() {
 
   // Tap a menu button to select + activate it. The button menu registers
   // menu-local ids (drawn with selectorIndex offset by recentBooks.size()), so map
-  // back into the global selector space. Touch-down shows it selected; release opens.
+  // back into the global selector space.
   int downId = -1;
   if (mappedInput.wasItemTouchedDown(downId)) {
     selectorIndex = static_cast<int>(recentBooks.size()) + downId;
@@ -274,8 +274,7 @@ void HomeActivity::render(RenderLock&&) {
   const int menuY = metrics.homeTopPadding + metrics.homeCoverTileHeight + metrics.homeMenuTopOffset;
   const int bottomReserve = (BaseTheme::showButtonHints() ? metrics.buttonHintsHeight : 0) + metrics.verticalSpacing;
   GUI.drawButtonMenu(
-      renderer, Rect{0, menuY, pageWidth, pageHeight - menuY - bottomReserve},
-      static_cast<int>(menuItems.size()),
+      renderer, Rect{0, menuY, pageWidth, pageHeight - menuY - bottomReserve}, static_cast<int>(menuItems.size()),
       metrics.homeContinueReadingInMenu ? selectorIndex : selectorIndex - recentBooks.size(),
       [&menuItems](int index) { return std::string(menuItems[index]); },
       [&menuIcons](int index) { return menuIcons[index]; });

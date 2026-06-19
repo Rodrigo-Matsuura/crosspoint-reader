@@ -133,15 +133,14 @@ void SettingsActivity::loop() {
   } else if (swipe == MappedInputManager::SwipeDir::Up || swipe == MappedInputManager::SwipeDir::Down) {
     // Vertical swipe page-scrolls the list (touch nav without the side buttons).
     // count is settingsCount + 1 because row 0 is the category tab bar.
-    const int page = std::max(
-        1, UITheme::getNumberOfItemsPerPage(renderer, true, true, BaseTheme::showButtonHints(), false));
+    const int page =
+        std::max(1, UITheme::getNumberOfItemsPerPage(renderer, true, true, BaseTheme::showButtonHints(), false));
     mappedInput.wasListScroll(selectedSettingIndex, settingsCount + 1, page);
     requestUpdate();
   }
 
   // Tap a settings row to select + activate it. Row 0 is the tab bar, so the list
-  // is drawn at selectedSettingIndex - 1; map the tapped row back by +1. Touch-down
-  // shows it selected; release toggles/activates below.
+  // is drawn at selectedSettingIndex - 1; map the tapped row back by +1.
   int downId = -1;
   if (!swiped && mappedInput.wasItemTouchedDown(downId) && downId >= 0 && downId < settingsCount) {
     selectedSettingIndex = downId + 1;

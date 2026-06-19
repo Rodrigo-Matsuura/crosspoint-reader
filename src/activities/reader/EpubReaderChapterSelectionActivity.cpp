@@ -3,11 +3,39 @@
 #include <GfxRenderer.h>
 #include <I18n.h>
 
+#include <algorithm>
+
 #include "MappedInputManager.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
-int EpubReaderChapterSelectionActivity::getTotalItems() const { return epub->getTocItemsCount(); }
+int EpubReaderChapterSelectionActivity::getTotalItems() const { return epub ? epub->getTocItemsCount() : 0; }
+
+void EpubReaderChapterSelectionActivity::cancelAndFinish() {
+  ActivityResult result;
+  result.isCancelled = true;
+  setResult(std::move(result));
+  finish();
+}
+
+void EpubReaderChapterSelectionActivity::activateSelection(int index) {
+  const int totalItems = getTotalItems();
+  if (!epub || totalItems <= 0) {
+    cancelAndFinish();
+    return;
+  }
+
+  index = std::clamp(index, 0, totalItems - 1);
+  const auto tocItem = epub->getTocItem(index);
+  if (tocItem.spineIndex < 0 || tocItem.spineIndex >= epub->getSpineItemsCount()) {
+    cancelAndFinish();
+    return;
+  }
+
+  selectorIndex = index;
+  setResult(ChapterResult{tocItem.spineIndex, tocItem.anchor});
+  finish();
+}
 
 void EpubReaderChapterSelectionActivity::onEnter() {
   Activity::onEnter();
@@ -30,6 +58,12 @@ void EpubReaderChapterSelectionActivity::onExit() { Activity::onExit(); }
 void EpubReaderChapterSelectionActivity::loop() {
   const int pageItems = UITheme::getInstance().getNumberOfItemsPerPage(renderer, true, false, true, false);
   const int totalItems = getTotalItems();
+  if (!epub || totalItems <= 0) {
+    if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
+      cancelAndFinish();
+    }
+    return;
+  }
 
   // Vertical swipe page-scrolls the list (touch nav without the side buttons).
   if (mappedInput.wasListScroll(selectorIndex, totalItems, pageItems)) {
@@ -45,23 +79,17 @@ void EpubReaderChapterSelectionActivity::loop() {
 
   int tappedId = -1;
   const bool tapped = mappedInput.wasItemTapped(tappedId);
-  if (tapped && tappedId >= 0 && tappedId < totalItems) selectorIndex = tappedId;
-  if (tapped || mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-    const auto tocItem = epub->getTocItem(selectorIndex);
-    if (tocItem.spineIndex == -1) {
-      ActivityResult result;
-      result.isCancelled = true;
-      setResult(std::move(result));
-      finish();
-    } else {
-      setResult(ChapterResult{tocItem.spineIndex, tocItem.anchor});
-      finish();
-    }
+  const bool validTap = tapped && tappedId >= 0 && tappedId < totalItems;
+  const bool confirm = mappedInput.wasReleased(MappedInputManager::Button::Confirm);
+  if (validTap) {
+    selectorIndex = tappedId;
+  }
+  if (validTap || confirm) {
+    activateSelection(selectorIndex);
+    return;
   } else if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-    ActivityResult result;
-    result.isCancelled = true;
-    setResult(std::move(result));
-    finish();
+    cancelAndFinish();
+    return;
   }
 
   buttonNavigator.onNextRelease([this, totalItems] {
@@ -98,10 +126,12 @@ void EpubReaderChapterSelectionActivity::render(RenderLock&&) {
   const int contentHeight = screen.height - contentTop - metrics.verticalSpacing;
 
   const int totalItems = getTotalItems();
-  GUI.drawList(renderer, Rect{screen.x, contentTop, screen.width, contentHeight}, totalItems, selectorIndex,
+  const int displayIndex = totalItems > 0 ? std::clamp(selectorIndex, 0, totalItems - 1) : 0;
+  GUI.drawList(renderer, Rect{screen.x, contentTop, screen.width, contentHeight}, totalItems, displayIndex,
                [this](int index) {
                  auto item = epub->getTocItem(index);
-                 std::string indent((item.level - 1) * 2, ' ');
+                 const int level = item.level > 0 ? item.level - 1 : 0;
+                 std::string indent(level * 2, ' ');
                  return indent + item.title;
                });
 

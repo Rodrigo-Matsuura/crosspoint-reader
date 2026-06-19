@@ -86,6 +86,9 @@ class HalGPIO {
   // 0..1 (panel native). For showing the pressed/selected element before release.
   bool wasTouchDown(float& nx, float& ny) const;
 
+  // True while a touch remains within tap slop; writes touch-down position and held time.
+  bool isTouchTapCandidate(float& nx, float& ny, unsigned long& heldMs) const;
+
   // Duration (ms) of the last touch contact, latched on release. Valid on the
   // release frame (alongside wasTouchTap). For tap-vs-long-press decisions.
   unsigned long lastTouchHeldMs() const;
