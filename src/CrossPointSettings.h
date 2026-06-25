@@ -65,6 +65,8 @@ class CrossPointSettings {
     XTC_STATUS_BAR_MODE_COUNT
   };
 
+  enum STATUS_BAR_CLOCK_MODE { STATUS_BAR_CLOCK_HIDE = 0, STATUS_BAR_CLOCK_RIGHT = 1, STATUS_BAR_CLOCK_LEFT = 2 };
+
   enum ORIENTATION {
     PORTRAIT = 0,       // 480x800 logical coordinates (current default)
     LANDSCAPE_CW = 1,   // 800x480 logical coordinates, rotated 180° (swap top/bottom)
@@ -98,7 +100,8 @@ class CrossPointSettings {
   enum SIDE_BUTTON_LAYOUT { PREV_NEXT = 0, NEXT_PREV = 1, SIDE_BUTTONS_DISABLED = 2, SIDE_BUTTON_LAYOUT_COUNT };
 
   // Font family options (built-in fonts only; SD card fonts use sdFontFamilyName)
-  enum FONT_FAMILY { NOTOSERIF = 0, NOTOSANS = 1, OPENDYSLEXIC = 2, FONT_FAMILY_COUNT };
+  enum FONT_FAMILY { NOTOSERIF = 0, NOTOSANS = 1, FONT_FAMILY_COUNT };
+  static constexpr uint8_t LEGACY_OPENDYSLEXIC = 2;
   static constexpr uint8_t BUILTIN_FONT_COUNT = FONT_FAMILY_COUNT;
   // Font size options
   enum FONT_SIZE { SMALL = 0, MEDIUM = 1, LARGE = 2, EXTRA_LARGE = 3, FONT_SIZE_COUNT };
@@ -133,7 +136,18 @@ class CrossPointSettings {
   };
 
   // Short power button press actions
-  enum SHORT_PWRBTN { IGNORE = 0, SLEEP = 1, PAGE_TURN = 2, FORCE_REFRESH = 3, SHORT_PWRBTN_COUNT };
+  enum SHORT_PWRBTN { IGNORE = 0, SLEEP = 1, PAGE_TURN = 2, FORCE_REFRESH = 3, FOOTNOTES = 4, SHORT_PWRBTN_COUNT };
+
+  // Long-press Confirm action while reading an EPUB. The setting cycles through these values.
+  // Persisted in settings.json by index: any new function (e.g. dictionary, bookmark) MUST use a
+  // value >= 2 and be appended at the END of the enumValues array in SettingsList.h, otherwise the
+  // stored indices shift and existing saves are silently misinterpreted.
+  enum LONG_PRESS_MENU_FUNCTION {
+    LP_MENU_KOSYNC = 0,
+    LP_MENU_DISABLED = 1,
+    LP_MENU_BOOKMARK = 2,
+    LONG_PRESS_MENU_FUNCTION_COUNT
+  };
 
   // Hide battery percentage
   enum HIDE_BATTERY_PERCENTAGE { HIDE_NEVER = 0, HIDE_READER = 1, HIDE_ALWAYS = 2, HIDE_BATTERY_PERCENTAGE_COUNT };
@@ -176,7 +190,7 @@ class CrossPointSettings {
   uint8_t statusBarBattery = 1;
   uint8_t xtcStatusBarMode = XTC_STATUS_BAR_HIDE;
   // Clock display in status bar (X3 only, requires DS3231 RTC)
-  uint8_t statusBarClock = 0;
+  uint8_t statusBarClock = STATUS_BAR_CLOCK_HIDE;
   // Clock UTC offset in quarter-hour steps, biased by 48 so it fits in uint8_t.
   // Value 48 = UTC+0, 0 = UTC-12:00, 104 = UTC+14:00.
   // Quarter-hour granularity supports oddball zones like Nepal (+5:45) and Chatham (+12:45).
@@ -225,10 +239,15 @@ class CrossPointSettings {
   uint8_t hideBatteryPercentage = HIDE_NEVER;
   // Long-press page turn button behavior
   uint8_t longPressButtonBehavior = OFF;
+  // Long-press Confirm function in EPUB reader (cycles through LONG_PRESS_MENU_FUNCTION values).
+  // Defaults to Disabled so shortcut-based bookmark toggling remains opt-in.
+  uint8_t longPressMenuFunction = LP_MENU_DISABLED;
   // UI Theme
   uint8_t uiTheme = LYRA;
   // Sunlight fading compensation
   uint8_t fadingFix = 0;
+  // Power button return from footnotes (1 = enabled, 0 = disabled)
+  uint8_t pwrBtnFootnoteBack = 1;
   // Use book's embedded CSS styles for EPUB rendering (1 = enabled, 0 = disabled)
   uint8_t embeddedStyle = 1;
   // Focus Reading - emphasizes the first part of words with bold

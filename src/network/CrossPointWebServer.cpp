@@ -1777,6 +1777,9 @@ void CrossPointWebServer::handleFontUploadData() {
     case UPLOAD_FILE_START: {
       esp_task_wdt_reset();
       String family = server->arg("family");
+      fontUpload.file = HalFile();
+      fontUpload.familyName.clear();
+      fontUpload.filePath.clear();
       fontUpload.valid = false;
       fontUpload.magicChecked = false;
       fontUpload.bytesWritten = 0;
@@ -1788,6 +1791,7 @@ void CrossPointWebServer::handleFontUploadData() {
       }
 
       String filename = upload.filename;
+      filename.replace(' ', '_');
       // Validate filename: rejects path traversal (../, /, \) and enforces
       // a .cpfont basename of alphanumeric + hyphen + underscore. Without
       // this an attacker could supply "../../.crosspoint/settings.json" as
@@ -1862,7 +1866,7 @@ void CrossPointWebServer::handleFontUploadData() {
         fontUpload.bytesWritten += fontUpload.bufferPos;
         fontUpload.bufferPos = 0;
       }
-      if (fontUpload.file) {
+      if (fontUpload.file.isOpen()) {
         fontUpload.file.close();
       }
 

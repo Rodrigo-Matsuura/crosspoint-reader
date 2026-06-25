@@ -250,7 +250,8 @@ bool JsonSettingsIO::loadSettings(CrossPointSettings& s, const char* json, bool*
   CrossPointSettings::validateFrontButtonMapping(s);
 
   // Font family — uses dynamic getter/setter in SettingsList so the generic loop skips it.
-  s.fontFamily = clamp(doc["fontFamily"] | (uint8_t)0, CrossPointSettings::BUILTIN_FONT_COUNT, 0);
+  const uint8_t storedFontFamily = doc["fontFamily"] | (uint8_t)0;
+  s.fontFamily = clamp(storedFontFamily, CrossPointSettings::BUILTIN_FONT_COUNT, 0);
   // UI theme — uses dynamic getter/setter in SettingsList so the generic loop skips it.
   s.uiTheme = clamp(doc["uiTheme"] | (uint8_t)CrossPointSettings::LYRA, (uint8_t)CrossPointSettings::UI_THEME_COUNT,
                     (uint8_t)CrossPointSettings::LYRA);
@@ -262,6 +263,14 @@ bool JsonSettingsIO::loadSettings(CrossPointSettings& s, const char* json, bool*
   const char* stn = doc["sdThemeName"] | "";
   strncpy(s.sdThemeName, stn, sizeof(s.sdThemeName) - 1);
   s.sdThemeName[sizeof(s.sdThemeName) - 1] = '\0';
+  if (storedFontFamily == CrossPointSettings::LEGACY_OPENDYSLEXIC && s.sdFontFamilyName[0] == '\0') {
+    s.fontFamily = CrossPointSettings::NOTOSERIF;
+    strncpy(s.sdFontFamilyName, "OpenDyslexic", sizeof(s.sdFontFamilyName) - 1);
+    s.sdFontFamilyName[sizeof(s.sdFontFamilyName) - 1] = '\0';
+    if (needsResave) *needsResave = true;
+  } else if (storedFontFamily >= CrossPointSettings::BUILTIN_FONT_COUNT) {
+    if (needsResave) *needsResave = true;
+  }
 
   // Language -- stored as code string for stability across enum reorders.
   if (doc["language"].is<const char*>()) {
@@ -427,6 +436,9 @@ bool JsonSettingsIO::saveBookmarks(const std::vector<BookmarkEntry>& bookmarks, 
     obj["xpath"] = bookmark.xpath;
     obj["percentage"] = bookmark.percentage;
     obj["summary"] = bookmark.summary;
+    obj["si"] = bookmark.computedSpineIndex;
+    obj["pc"] = bookmark.computedChapterPageCount;
+    obj["pp"] = bookmark.computedChapterProgress;
   }
 
   String json;
@@ -451,6 +463,9 @@ bool JsonSettingsIO::loadBookmarks(std::vector<BookmarkEntry>& bookmarks, const 
     bookmark.xpath = obj["xpath"] | std::string("");
     bookmark.percentage = obj["percentage"] | static_cast<float>(0);
     bookmark.summary = obj["summary"] | std::string("");
+    bookmark.computedSpineIndex = obj["si"] | static_cast<uint16_t>(0);
+    bookmark.computedChapterPageCount = obj["pc"] | static_cast<uint16_t>(0);
+    bookmark.computedChapterProgress = obj["pp"] | static_cast<uint16_t>(0);
   }
 
   LOG_DBG("BKM", "Loaded %zu bookmarks from file", bookmarks.size());

@@ -19,7 +19,7 @@
 // are appended after the built-in fonts. Otherwise only built-in fonts are listed.
 inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
   // Built-in font labels (StrId)
-  std::vector<StrId> enumValues = {StrId::STR_NOTO_SERIF, StrId::STR_NOTO_SANS, StrId::STR_OPEN_DYSLEXIC};
+  std::vector<StrId> enumValues = {StrId::STR_NOTO_SERIF, StrId::STR_NOTO_SANS};
   // Runtime string labels for SD card fonts
   std::vector<std::string> enumStringValues;
 
@@ -42,7 +42,6 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
   if (sdFontCount > 0) {
     allStringValues.push_back(I18N.get(StrId::STR_NOTO_SERIF));
     allStringValues.push_back(I18N.get(StrId::STR_NOTO_SANS));
-    allStringValues.push_back(I18N.get(StrId::STR_OPEN_DYSLEXIC));
     allStringValues.insert(allStringValues.end(), enumStringValues.begin(), enumStringValues.end());
   }
 
@@ -193,8 +192,7 @@ inline std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* fontRe
         // Built-in font-family entry. Replaced per-call with a registry-aware
         // version when SD fonts are installed.
         SettingInfo::Enum(StrId::STR_FONT_FAMILY, &CrossPointSettings::fontFamily,
-                          {StrId::STR_NOTO_SERIF, StrId::STR_NOTO_SANS, StrId::STR_OPEN_DYSLEXIC}, "fontFamily",
-                          StrId::STR_CAT_READER),
+                          {StrId::STR_NOTO_SERIF, StrId::STR_NOTO_SANS}, "fontFamily", StrId::STR_CAT_READER),
         SettingInfo::Enum(StrId::STR_FONT_SIZE, &CrossPointSettings::fontSize,
                           {StrId::STR_SMALL, StrId::STR_MEDIUM, StrId::STR_LARGE, StrId::STR_X_LARGE}, "fontSize",
                           StrId::STR_CAT_READER),
@@ -232,9 +230,15 @@ inline std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* fontRe
                           {StrId::STR_LONG_PRESS_BEHAVIOR_OFF, StrId::STR_LONG_PRESS_BEHAVIOR_SKIP,
                            StrId::STR_LONG_PRESS_BEHAVIOR_ORIENTATION},
                           "longPressButtonBehavior", StrId::STR_CAT_CONTROLS),
-        SettingInfo::Enum(StrId::STR_SHORT_PWR_BTN, &CrossPointSettings::shortPwrBtn,
-                          {StrId::STR_IGNORE, StrId::STR_SLEEP, StrId::STR_PAGE_TURN, StrId::STR_FORCE_REFRESH},
-                          "shortPwrBtn", StrId::STR_CAT_CONTROLS),
+        SettingInfo::Enum(StrId::STR_LONG_PRESS_MENU, &CrossPointSettings::longPressMenuFunction,
+                          {StrId::STR_KOSYNC, StrId::STR_DISABLED, StrId::STR_BOOKMARK_OPTION}, "longPressMenuFunction",
+                          StrId::STR_CAT_CONTROLS),
+        SettingInfo::Enum(
+            StrId::STR_SHORT_PWR_BTN, &CrossPointSettings::shortPwrBtn,
+            {StrId::STR_IGNORE, StrId::STR_SLEEP, StrId::STR_PAGE_TURN, StrId::STR_FORCE_REFRESH, StrId::STR_FOOTNOTES},
+            "shortPwrBtn", StrId::STR_CAT_CONTROLS),
+        SettingInfo::Toggle(StrId::STR_PWR_BTN_FOOTNOTE_BACK, &CrossPointSettings::pwrBtnFootnoteBack,
+                            "pwrBtnFootnoteBack", StrId::STR_CAT_CONTROLS),
 
         // --- System ---
         SettingInfo::Value(
@@ -299,8 +303,9 @@ inline std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* fontRe
                           StrId::STR_CUSTOMISE_STATUS_BAR),
         // Clock entries (web settings only; device UI uses ClockOffsetActivity for the offset).
         // Range 0..104 = quarter-hour steps from UTC-12:00 to UTC+14:00, biased by 48.
-        SettingInfo::Toggle(StrId::STR_CLOCK, &CrossPointSettings::statusBarClock, "statusBarClock",
-                            StrId::STR_CUSTOMISE_STATUS_BAR),
+        SettingInfo::Enum(StrId::STR_CLOCK, &CrossPointSettings::statusBarClock,
+                          {StrId::STR_HIDE, StrId::STR_DIR_LEFT, StrId::STR_DIR_RIGHT}, "statusBarClock",
+                          StrId::STR_CUSTOMISE_STATUS_BAR),
         SettingInfo::Value(StrId::STR_CLOCK_UTC_OFFSET, &CrossPointSettings::clockUtcOffsetQ, {0, 104, 1},
                            "clockUtcOffsetQ", StrId::STR_CUSTOMISE_STATUS_BAR),
         SettingInfo::Enum(StrId::STR_CLOCK_FORMAT, &CrossPointSettings::clockFormat,
