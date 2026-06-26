@@ -5,6 +5,7 @@
     {
       "id": "carousel",
       "name": "Carousel",
+      "version": 2,
       "description": "A cover-focused home screen with a centered book, side previews, and a thicker outline while browsing covers.",
       "files": [
         {
@@ -100,25 +101,26 @@
         {
           "path": "theme.json",
           "url": "carousel/theme.json",
-          "size": 4334,
-          "crc32": 671615446
+          "size": 4350,
+          "crc32": 2471863568
         }
       ],
-      "totalSize": 7024
+      "totalSize": 7040
     },
     {
       "id": "super-minimal",
       "name": "Super Minimal",
+      "version": 1,
       "description": "A quiet text-only theme with no cover area, centered home options, underline selection, and icon-only hints.",
       "files": [
         {
           "path": "theme.json",
           "url": "super-minimal/theme.json",
-          "size": 2541,
-          "crc32": 2904465161
+          "size": 2557,
+          "crc32": 2004588264
         }
       ],
-      "totalSize": 2541
+      "totalSize": 2557
     }
   ]
 }

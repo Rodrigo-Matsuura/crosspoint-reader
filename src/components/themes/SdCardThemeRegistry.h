@@ -15,6 +15,7 @@ struct SdThemeDeviceConstraints {
 struct SdCardThemeInfo {
   std::string id;
   std::string name;
+  int version = 0;
   std::string path;
   std::string inherits;
   std::string deviceId;

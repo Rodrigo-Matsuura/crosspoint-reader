@@ -117,6 +117,7 @@ bool ThemeDownloadActivity::fetchAndParseManifest() {
     theme.id = tObj["id"] | "";
     theme.name = tObj["name"] | theme.id;
     theme.description = tObj["description"] | "";
+    theme.version = tObj["version"] | 0;
 
     if (!ThemeInstaller::isValidThemeId(theme.id.c_str())) {
       errorMessage_ = tr(STR_DOWNLOAD_FAILED);
@@ -142,23 +143,33 @@ bool ThemeDownloadActivity::fetchAndParseManifest() {
 
     theme.installed = themeInstaller_.isThemeInstalled(theme.id.c_str());
     if (theme.installed) {
-      for (const auto& file : theme.files) {
-        char path[180];
-        if (!ThemeInstaller::buildThemePath(theme.id.c_str(), file.path.c_str(), path, sizeof(path))) {
-          errorMessage_ = tr(STR_DOWNLOAD_FAILED);
-          return false;
-        }
-        HalFile f;
-        if (Storage.openFileForRead("THEME", path, f)) {
-          const size_t actual = f.fileSize();
-          f.close();
-          if (actual != file.size) {
+      // Primary update signal: the manifest declares a newer theme version than
+      // the copy installed on the SD card.
+      const auto* installed = UITheme::getInstance().registry().findTheme(theme.id);
+      const int installedVersion = installed != nullptr ? installed->version : 0;
+      if (theme.version > installedVersion) {
+        theme.hasUpdate = true;
+      } else {
+        // Safety net: even at the same version, re-offer if a file is missing or
+        // its size no longer matches (catches a corrupted or partial install).
+        for (const auto& file : theme.files) {
+          char path[180];
+          if (!ThemeInstaller::buildThemePath(theme.id.c_str(), file.path.c_str(), path, sizeof(path))) {
+            errorMessage_ = tr(STR_DOWNLOAD_FAILED);
+            return false;
+          }
+          HalFile f;
+          if (Storage.openFileForRead("THEME", path, f)) {
+            const size_t actual = f.fileSize();
+            f.close();
+            if (actual != file.size) {
+              theme.hasUpdate = true;
+              break;
+            }
+          } else {
             theme.hasUpdate = true;
             break;
           }
-        } else {
-          theme.hasUpdate = true;
-          break;
         }
       }
     }

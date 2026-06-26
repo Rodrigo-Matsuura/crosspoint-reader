@@ -49,6 +49,7 @@ class ThemeDownloadActivity : public Activity {
     std::string id;
     std::string name;
     std::string description;
+    int version = 0;
     std::vector<ManifestFile> files;
     size_t totalSize = 0;
     bool installed = false;

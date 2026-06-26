@@ -458,6 +458,7 @@ bool SdCardThemeRegistry::parseThemeJson(const char* themeDirPath, SdCardThemeIn
   const char* inherits = deviceObj["inherits"] | doc["inherits"] | "lyra";
   out.id = id;
   out.name = name;
+  out.version = doc["version"] | 0;
   out.path = themeDirPath;
   out.inherits = inherits;
   out.deviceId = deviceId;
