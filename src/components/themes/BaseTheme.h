@@ -115,6 +115,9 @@ struct ThemeTitleSpec {
   bool bold = true;
   int maxLines = 2;
   int offsetY = 12;
+  // When true, the title may span the full carousel area width (centered on the
+  // area, not the cover) instead of being constrained to the cover width.
+  bool fullWidth = false;
 };
 
 struct ThemeCoverSlotSpec {

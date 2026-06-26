@@ -46,7 +46,8 @@
             "enabled": true,
             "font": "ui12",
             "style": "bold",
-            "maxLines": 2,
+            "maxLines": 1,
+            "fullWidth": true,
             "offsetY": 12
           }
         },

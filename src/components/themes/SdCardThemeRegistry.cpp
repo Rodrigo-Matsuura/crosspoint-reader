@@ -130,6 +130,7 @@ void parseTitleSpec(JsonObjectConst obj, ThemeTitleSpec& title) {
   title.bold = obj["bold"] | title.bold;
   title.maxLines = obj["maxLines"] | title.maxLines;
   title.offsetY = obj["offsetY"] | title.offsetY;
+  title.fullWidth = obj["fullWidth"] | title.fullWidth;
 
   const char* style = obj["style"].as<const char*>();
   if (style != nullptr) {

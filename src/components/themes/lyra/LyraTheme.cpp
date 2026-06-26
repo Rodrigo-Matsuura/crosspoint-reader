@@ -1050,14 +1050,19 @@ void LyraTheme::drawCoverStripRecents(GfxRenderer& renderer, Rect rect, const st
     drawCover(bookIndex, x, y, w, h, selectedCover);
 
     if (slot.title.enabled) {
-      const int maxWidth = std::max(40, w + 28);
+      // Full-width titles wrap/truncate against the whole carousel area (less
+      // side padding) and center on the area; otherwise they track the cover.
+      const int titleAreaX = slot.title.fullWidth ? rect.x + m.contentSidePadding : x;
+      const int titleAreaWidth =
+          slot.title.fullWidth ? std::max(40, rect.width - 2 * m.contentSidePadding) : std::max(40, w + 28);
       const auto style = slot.title.bold ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR;
-      const auto titleLines = renderer.wrappedText(slot.title.fontId, recentBooks[bookIndex].title.c_str(), maxWidth,
-                                                   slot.title.maxLines, style);
+      const auto titleLines = renderer.wrappedText(slot.title.fontId, recentBooks[bookIndex].title.c_str(),
+                                                   titleAreaWidth, slot.title.maxLines, style);
       int titleY = y + h + slot.title.offsetY;
       for (const auto& line : titleLines) {
         const int textWidth = renderer.getTextWidth(slot.title.fontId, line.c_str(), style);
-        renderer.drawText(slot.title.fontId, x + (w - textWidth) / 2, titleY, line.c_str(), true, style);
+        renderer.drawText(slot.title.fontId, titleAreaX + (titleAreaWidth - textWidth) / 2, titleY, line.c_str(), true,
+                          style);
         titleY += renderer.getLineHeight(slot.title.fontId);
       }
     }
