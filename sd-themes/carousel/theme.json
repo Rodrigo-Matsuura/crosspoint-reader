@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": 2,
+  "version": 3,
   "id": "carousel",
   "name": "Carousel",
   "description": "A cover-focused home screen with a centered book, side previews, and a thicker outline while browsing covers.",
@@ -122,8 +122,8 @@
   "devices": {
     "x3": {
       "constraints": {
-        "screenWidth": 480,
-        "screenHeight": 800,
+        "screenWidth": 528,
+        "screenHeight": 792,
         "frontButtons": 4,
         "sideButtons": "up-down"
       },
@@ -149,7 +149,8 @@
                 "enabled": true,
                 "font": "ui12",
                 "style": "bold",
-                "maxLines": 2,
+                "maxLines": 1,
+                "fullWidth": true,
                 "offsetY": 12
               }
             },

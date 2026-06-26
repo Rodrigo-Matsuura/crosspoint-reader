@@ -1051,17 +1051,19 @@ void LyraTheme::drawCoverStripRecents(GfxRenderer& renderer, Rect rect, const st
 
     if (slot.title.enabled) {
       // Full-width titles wrap/truncate against the whole carousel area (less
-      // side padding) and center on the area; otherwise they track the cover.
-      const int titleAreaX = slot.title.fullWidth ? rect.x + m.contentSidePadding : x;
-      const int titleAreaWidth =
-          slot.title.fullWidth ? std::max(40, rect.width - 2 * m.contentSidePadding) : std::max(40, w + 28);
+      // side padding) and center on it; otherwise they track the cover: wrap a
+      // touch wider than the cover (w + 28) but stay centered on the cover (w).
+      const bool fullWidth = slot.title.fullWidth;
+      const int wrapWidth = fullWidth ? std::max(40, rect.width - 2 * m.contentSidePadding) : std::max(40, w + 28);
+      const int centerX = fullWidth ? rect.x + m.contentSidePadding : x;
+      const int centerWidth = fullWidth ? std::max(40, rect.width - 2 * m.contentSidePadding) : w;
       const auto style = slot.title.bold ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR;
-      const auto titleLines = renderer.wrappedText(slot.title.fontId, recentBooks[bookIndex].title.c_str(),
-                                                   titleAreaWidth, slot.title.maxLines, style);
+      const auto titleLines = renderer.wrappedText(slot.title.fontId, recentBooks[bookIndex].title.c_str(), wrapWidth,
+                                                   slot.title.maxLines, style);
       int titleY = y + h + slot.title.offsetY;
       for (const auto& line : titleLines) {
         const int textWidth = renderer.getTextWidth(slot.title.fontId, line.c_str(), style);
-        renderer.drawText(slot.title.fontId, titleAreaX + (titleAreaWidth - textWidth) / 2, titleY, line.c_str(), true,
+        renderer.drawText(slot.title.fontId, centerX + (centerWidth - textWidth) / 2, titleY, line.c_str(), true,
                           style);
         titleY += renderer.getLineHeight(slot.title.fontId);
       }

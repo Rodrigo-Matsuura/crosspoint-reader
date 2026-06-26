@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": 1,
+  "version": 2,
   "id": "super-minimal",
   "name": "Super Minimal",
   "description": "A quiet text-only theme with no cover area, centered home options, underline selection, and icon-only hints.",
@@ -85,8 +85,8 @@
   "devices": {
     "x3": {
       "constraints": {
-        "screenWidth": 480,
-        "screenHeight": 800,
+        "screenWidth": 528,
+        "screenHeight": 792,
         "frontButtons": 4,
         "sideButtons": "up-down"
       }
