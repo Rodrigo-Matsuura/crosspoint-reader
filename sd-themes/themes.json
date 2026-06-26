@@ -100,11 +100,11 @@
         {
           "path": "theme.json",
           "url": "carousel/theme.json",
-          "size": 4303,
-          "crc32": 1789517670
+          "size": 4334,
+          "crc32": 671615446
         }
       ],
-      "totalSize": 6993
+      "totalSize": 7024
     },
     {
       "id": "super-minimal",
