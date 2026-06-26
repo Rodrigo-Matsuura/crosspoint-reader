@@ -102,6 +102,12 @@ struct ThemeMetrics {
   int textFieldLineEndOffset;
 };
 
+// Guard for scaleThemeMetrics() (UITheme.cpp): every pixel field there is scaled
+// explicitly, so the static_assert there fails when a ThemeMetrics field is added
+// or removed. When it trips, classify the new field (scale it or document why not
+// in scaleThemeMetrics) and update this size.
+inline constexpr unsigned THEME_METRICS_SIZEOF = 224;
+
 enum class ThemeHomeRecentsType { Default, None, CoverStrip };
 enum class ThemeBookRef { Previous, Selected, Next, Index };
 enum class ThemeSlotX { Padding, Center, RightPadding };

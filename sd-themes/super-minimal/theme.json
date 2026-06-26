@@ -5,6 +5,10 @@
   "name": "Super Minimal",
   "description": "A quiet text-only theme with no cover area, centered home options, underline selection, and icon-only hints.",
   "inherits": "lyra",
+  "constraints": {
+    "screenWidth": 480,
+    "screenHeight": 800
+  },
   "metrics": {
     "headerHeight": 48,
     "tabBarHeight": 36,
@@ -80,24 +84,6 @@
       "shapes": true,
       "shapeSize": 18,
       "textOffsetY": 7
-    }
-  },
-  "devices": {
-    "x3": {
-      "constraints": {
-        "screenWidth": 528,
-        "screenHeight": 792,
-        "frontButtons": 4,
-        "sideButtons": "up-down"
-      }
-    },
-    "x4": {
-      "constraints": {
-        "screenWidth": 480,
-        "screenHeight": 800,
-        "frontButtons": 0,
-        "sideButtons": "up-down"
-      }
     }
   },
   "extensions": {

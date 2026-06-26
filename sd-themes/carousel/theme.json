@@ -5,6 +5,10 @@
   "name": "Carousel",
   "description": "A cover-focused home screen with a centered book, side previews, and a thicker outline while browsing covers.",
   "inherits": "lyra",
+  "constraints": {
+    "screenWidth": 480,
+    "screenHeight": 800
+  },
   "requires": {
     "crosspoint": {
       "schema": 1,
@@ -117,61 +121,6 @@
       "text24": "icons/text24.bmp",
       "transfer": "icons/transfer.bmp",
       "wifi": "icons/wifi.bmp"
-    }
-  },
-  "devices": {
-    "x3": {
-      "constraints": {
-        "screenWidth": 528,
-        "screenHeight": 792,
-        "frontButtons": 4,
-        "sideButtons": "up-down"
-      },
-      "components": {
-        "homeRecents": {
-          "slots": [
-            {
-              "book": "previous",
-              "x": "padding",
-              "y": "center",
-              "height": 210,
-              "widthPercent": 62
-            },
-            {
-              "book": "selected",
-              "x": "center",
-              "y": "top",
-              "height": 280,
-              "widthPercent": 62,
-              "yOffset": 8,
-              "selected": true,
-              "title": {
-                "enabled": true,
-                "font": "ui12",
-                "style": "bold",
-                "maxLines": 1,
-                "fullWidth": true,
-                "offsetY": 12
-              }
-            },
-            {
-              "book": "next",
-              "x": "right-padding",
-              "y": "center",
-              "height": 210,
-              "widthPercent": 62
-            }
-          ]
-        }
-      }
-    },
-    "x4": {
-      "constraints": {
-        "screenWidth": 480,
-        "screenHeight": 800,
-        "frontButtons": 0,
-        "sideButtons": "up-down"
-      }
     }
   },
   "extensions": {

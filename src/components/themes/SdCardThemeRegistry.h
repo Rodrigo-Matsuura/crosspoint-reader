@@ -5,11 +5,11 @@
 
 #include "components/themes/BaseTheme.h"
 
+// Theme's declared design resolution (portrait). Used to scale the theme's pixel
+// metrics to the actual device panel (see scaleThemeMetrics in UITheme.cpp).
 struct SdThemeDeviceConstraints {
   int screenWidth = 0;
   int screenHeight = 0;
-  int frontButtons = 0;
-  std::string sideButtons;
 };
 
 struct SdCardThemeInfo {
@@ -18,7 +18,6 @@ struct SdCardThemeInfo {
   int version = 0;
   std::string path;
   std::string inherits;
-  std::string deviceId;
   ThemeMetrics metrics = {};
   ThemeHomeRecentsSpec homeRecents;
   ThemeButtonMenuSpec buttonMenu;

@@ -30,6 +30,9 @@ class UITheme {
                                bool black = true, EpdFontFamily::Style style = EpdFontFamily::REGULAR);
   void reload();
   void setTheme(CrossPointSettings::UI_THEME type);
+  // Per-board UI/touch-target density scale: 1.0 on button devices, >1 on
+  // high-density touch boards (wired to the board profile on touch builds).
+  static float uiScale();
   static int getNumberOfItemsPerPage(const GfxRenderer& renderer, bool hasHeader, bool hasTabBar, bool hasButtonHints,
                                      bool hasSubtitle, int extraReservedHeight = 0);
   static std::string getCoverThumbPath(std::string coverBmpPath, int coverHeight);
@@ -51,6 +54,13 @@ class UITheme {
   std::unique_ptr<BaseTheme> currentTheme;
   SdCardThemeRegistry themeRegistry;
 };
+
+// Unified theme metric scaling (definition + field classification in UITheme.cpp).
+//   res     - resolution ratio (panel pixels vs theme design resolution)
+//   density - per-board UI density (UITheme::uiScale())
+// Applies res to every pixel field; density additionally to non-fit-constrained
+// chrome. Degrades to either factor alone when the other is 1.0.
+ThemeMetrics scaleThemeMetrics(const ThemeMetrics& base, float res, float density);
 
 // Helper macro to access current theme
 #define GUI UITheme::getInstance().getTheme()

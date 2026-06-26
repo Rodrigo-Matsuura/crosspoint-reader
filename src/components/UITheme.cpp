@@ -2,9 +2,11 @@
 
 #include <FsHelpers.h>
 #include <GfxRenderer.h>
+#include <HalGPIO.h>
 #include <Logging.h>
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 
 #include "MappedInputManager.h"
@@ -15,6 +17,124 @@
 #include "components/themes/roundedraff/RoundedRaffTheme.h"
 
 UITheme UITheme::instance;
+
+namespace {
+
+// Round a pixel dimension by a scale factor.
+int sp(int v, float s) { return static_cast<int>(std::lround(v * s)); }
+
+}  // namespace
+
+// Density scale is 1.0 here (button devices); touch builds override this to wire
+// in the per-board profile. Resolution scaling composes with it (see reload()).
+float UITheme::uiScale() { return 1.0f; }
+
+// Unified theme metric scaling. Two independent, composable inputs:
+//   res     - resolution ratio: this panel's pixels vs the theme's design
+//             resolution. Applies to EVERY pixel field, including the home cover
+//             and reader chrome, because more/fewer pixels means the whole layout
+//             scales proportionally and still fits by construction.
+//   density - per-board UI/touch-target scale (uiScale: 1.0 on button devices,
+//             >1 on high-density touch boards). Same pixel count, so it applies
+//             ONLY to chrome that can grow into spare space, and is deliberately
+//             withheld from fit-constrained elements (home cover, reader status/
+//             progress bars) that would overflow the fixed panel if enlarged.
+// Effective factor per field is res (always) times density (where eligible).
+// Counts, percents, ratios, and bools are never scaled. Degrades exactly: with
+// density==1 this is pure resolution scaling; with res==1, pure density scaling.
+ThemeMetrics scaleThemeMetrics(const ThemeMetrics& b, float res, float density) {
+  static_assert(sizeof(ThemeMetrics) == THEME_METRICS_SIZEOF,
+                "ThemeMetrics changed: review scaleThemeMetrics() and update THEME_METRICS_SIZEOF");
+  ThemeMetrics m = b;
+  const float full = res * density;  // resolution + density-eligible chrome
+  if (res == 1.0f && density == 1.0f) return m;
+  m.batteryWidth = sp(b.batteryWidth, full);
+  m.batteryHeight = sp(b.batteryHeight, full);
+  m.topPadding = sp(b.topPadding, full);
+  m.batteryBarHeight = sp(b.batteryBarHeight, full);
+  m.headerHeight = sp(b.headerHeight, full);
+  m.verticalSpacing = sp(b.verticalSpacing, full);
+  m.previewPadding = sp(b.previewPadding, full);  // previewHeightPercent is a percent: not scaled
+  m.contentSidePadding = sp(b.contentSidePadding, full);
+  m.listRowHeight = sp(b.listRowHeight, full);
+  m.listWithSubtitleRowHeight = sp(b.listWithSubtitleRowHeight, full);
+  m.menuRowHeight = sp(b.menuRowHeight, full);
+  m.menuSpacing = sp(b.menuSpacing, full);
+  m.tabSpacing = sp(b.tabSpacing, full);
+  m.tabBarHeight = sp(b.tabBarHeight, full);
+  m.scrollBarWidth = sp(b.scrollBarWidth, full);
+  m.scrollBarRightOffset = sp(b.scrollBarRightOffset, full);
+  m.homeTopPadding = sp(b.homeTopPadding, full);
+  // Fit-constrained: resolution only, never density (would push the menu off the
+  // fixed-height home screen). homeRecentBooksCount/bools are not scaled.
+  m.homeCoverHeight = sp(b.homeCoverHeight, res);
+  m.homeCoverTileHeight = sp(b.homeCoverTileHeight, res);
+  m.homeMenuTopOffset = sp(b.homeMenuTopOffset, full);
+  m.buttonHintsHeight = sp(b.buttonHintsHeight, full);
+  m.sideButtonHintsWidth = sp(b.sideButtonHintsWidth, full);
+  // Reader chrome (compact, uses the un-remapped SMALL font): resolution only,
+  // never density, so it does not eat reading area on high-density boards.
+  m.progressBarHeight = sp(b.progressBarHeight, res);
+  m.progressBarMarginTop = sp(b.progressBarMarginTop, res);
+  m.statusBarHorizontalMargin = sp(b.statusBarHorizontalMargin, res);
+  m.statusBarVerticalMargin = sp(b.statusBarVerticalMargin, res);
+  m.keyboardKeyWidth = sp(b.keyboardKeyWidth, full);
+  m.keyboardKeyHeight = sp(b.keyboardKeyHeight, full);
+  m.keyboardKeySpacing = sp(b.keyboardKeySpacing, full);
+  m.keyboardBottomKeyHeight = sp(b.keyboardBottomKeyHeight, full);
+  m.keyboardBottomKeySpacing = sp(b.keyboardBottomKeySpacing, full);
+  m.keyboardVerticalOffset = sp(b.keyboardVerticalOffset, full);
+  // keyboardTextFieldWidthPercent / keyboardWidthPercent are percents: not scaled
+  m.keyboardKeyCornerRadius = sp(b.keyboardKeyCornerRadius, full);
+  m.keyboardSecondaryLabelRightPadding = sp(b.keyboardSecondaryLabelRightPadding, full);
+  m.keyboardSecondaryLabelTopPadding = sp(b.keyboardSecondaryLabelTopPadding, full);
+  m.keyboardMinArrowHeadSize = sp(b.keyboardMinArrowHeadSize, full);
+  // popupTopOffsetRatio is a ratio: not scaled
+  m.popupMarginX = sp(b.popupMarginX, full);
+  m.popupMarginY = sp(b.popupMarginY, full);
+  m.popupFrameThickness = sp(b.popupFrameThickness, full);
+  m.popupCornerRadius = sp(b.popupCornerRadius, full);
+  m.popupTextBaselineOffsetY = sp(b.popupTextBaselineOffsetY, full);
+  m.popupProgressBarHeight = sp(b.popupProgressBarHeight, full);
+  m.textFieldHorizontalPadding = sp(b.textFieldHorizontalPadding, full);
+  m.textFieldNormalThickness = sp(b.textFieldNormalThickness, full);
+  m.textFieldCursorThickness = sp(b.textFieldCursorThickness, full);
+  m.textFieldLineEndOffset = sp(b.textFieldLineEndOffset, full);
+  return m;
+}
+
+namespace {
+
+// Scale the cover-strip slot geometry. Covers are fit-constrained, so like
+// homeCover they take the resolution factor only, never density. widthPercent is
+// a ratio of the cover height and stays unscaled; only pixel offsets/heights move.
+void scaleHomeRecents(ThemeHomeRecentsSpec& spec, float res) {
+  if (res == 1.0f) return;
+  spec.panelCornerRadius = sp(spec.panelCornerRadius, res);
+  spec.panelInsetX = sp(spec.panelInsetX, res);
+  spec.selectionCornerRadius = sp(spec.selectionCornerRadius, res);
+  for (auto& slot : spec.slots) {
+    slot.height = sp(slot.height, res);
+    slot.xOffset = sp(slot.xOffset, res);
+    slot.yOffset = sp(slot.yOffset, res);
+    slot.title.offsetY = sp(slot.title.offsetY, res);
+  }
+}
+
+// Resolution scale = (device native portrait panel) / (theme's declared design
+// resolution). Uniform min(width,height) ratio: no axis distortion, content fits
+// the tighter axis. Returns 1.0 when constraints are missing (back-compat no-op).
+float resolutionScale(const SdThemeDeviceConstraints& design) {
+  if (design.screenWidth <= 0 || design.screenHeight <= 0) return 1.0f;
+  // Native portrait dimensions are fixed per device (X3 528x792, X4 480x800).
+  const int actualW = gpio.deviceIsX3() ? 528 : 480;
+  const int actualH = gpio.deviceIsX3() ? 792 : 800;
+  const float wRatio = static_cast<float>(actualW) / static_cast<float>(design.screenWidth);
+  const float hRatio = static_cast<float>(actualH) / static_cast<float>(design.screenHeight);
+  return std::min(wRatio, hRatio);
+}
+
+}  // namespace
 
 UITheme::UITheme() {
   auto themeType = static_cast<CrossPointSettings::UI_THEME>(SETTINGS.uiTheme);
@@ -66,8 +186,15 @@ void UITheme::reload() {
     LOG_DBG("UI", "Using SD theme: %s recentsType=%d count=%d slots=%d", themeInfo->id.c_str(),
             static_cast<int>(themeInfo->homeRecents.type), themeInfo->metrics.homeRecentBooksCount,
             static_cast<int>(themeInfo->homeRecents.slots.size()));
-    currentSdMetrics = themeInfo->metrics;
+    // Adapt the theme (authored at its declared design resolution) to this panel:
+    // resolution ratio for everything, plus the per-board density scale for chrome.
+    const float res = resolutionScale(themeInfo->constraints);
+    LOG_DBG("UI", "Theme scale: res %d.%03d density %d.%03d (design %dx%d)", static_cast<int>(res),
+            static_cast<int>(res * 1000) % 1000, static_cast<int>(uiScale()), static_cast<int>(uiScale() * 1000) % 1000,
+            themeInfo->constraints.screenWidth, themeInfo->constraints.screenHeight);
+    currentSdMetrics = scaleThemeMetrics(themeInfo->metrics, res, uiScale());
     currentSdHomeRecents = themeInfo->homeRecents;
+    scaleHomeRecents(currentSdHomeRecents, res);
     currentSdButtonMenu = themeInfo->buttonMenu;
     currentSdList = themeInfo->list;
     currentSdButtonHints = themeInfo->buttonHints;

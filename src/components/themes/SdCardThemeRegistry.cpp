@@ -461,7 +461,6 @@ bool SdCardThemeRegistry::parseThemeJson(const char* themeDirPath, SdCardThemeIn
   out.version = doc["version"] | 0;
   out.path = themeDirPath;
   out.inherits = inherits;
-  out.deviceId = deviceId;
   out.metrics = defaultMetrics();
   parseHomeRecentsSpec(doc["components"]["homeRecents"].as<JsonObjectConst>(), out.homeRecents);
   parseHomeRecentsSpec(deviceObj["components"]["homeRecents"].as<JsonObjectConst>(), out.homeRecents);
@@ -489,8 +488,6 @@ bool SdCardThemeRegistry::parseThemeJson(const char* themeDirPath, SdCardThemeIn
   }
   out.constraints.screenWidth = deviceObj["constraints"]["screenWidth"] | doc["constraints"]["screenWidth"] | 0;
   out.constraints.screenHeight = deviceObj["constraints"]["screenHeight"] | doc["constraints"]["screenHeight"] | 0;
-  out.constraints.frontButtons = deviceObj["constraints"]["frontButtons"] | doc["constraints"]["frontButtons"] | 0;
-  out.constraints.sideButtons = (deviceObj["constraints"]["sideButtons"] | doc["constraints"]["sideButtons"] | "");
   return true;
 }
 
