@@ -461,7 +461,7 @@ After adding or changing hosted themes, regenerate `sd-themes/themes.json`:
 ```bash
 python3 scripts/generate-theme-manifest.py \
   --root sd-themes \
-  --base-url https://raw.githubusercontent.com/crosspoint-reader/crosspoint-reader/feat-sd-theme-system/sd-themes \
+  --base-url http://raw.githubusercontent.com/crosspoint-reader/crosspoint-reader/feat-sd-theme-system/sd-themes \
   --output sd-themes/themes.json
 ```
 
@@ -485,7 +485,7 @@ done
 
 python3 scripts/generate-theme-manifest.py \
   --root sd-themes \
-  --base-url https://raw.githubusercontent.com/crosspoint-reader/crosspoint-reader/feat-sd-theme-system/sd-themes \
+  --base-url http://raw.githubusercontent.com/crosspoint-reader/crosspoint-reader/feat-sd-theme-system/sd-themes \
   --output sd-themes/themes.json
 
 pio run -e gh_release
