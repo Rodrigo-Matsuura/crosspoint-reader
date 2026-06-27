@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": 3,
+  "version": 5,
   "id": "carousel",
   "name": "Carousel",
   "description": "A cover-focused home screen with a centered book, side previews, and a thicker outline while browsing covers.",
@@ -102,6 +102,109 @@
       "outline": true,
       "drawEmpty": true,
       "textOffsetY": 7
+    }
+  },
+  "screens": {
+    "home": {
+      "layout": {
+        "axis": "column",
+        "gap": 0,
+        "slots": [
+          {
+            "id": "header",
+            "fixed": 56,
+            "axis": "row",
+            "gap": 8,
+            "slots": [
+              { "id": "homeClock", "fixed": 64 },
+              { "id": "homeTitle", "flex": 1 },
+              { "id": "homeBattery", "fixed": 74 }
+            ]
+          },
+          { "id": "recents", "fixed": 340 },
+          { "id": "launchers", "flex": 1 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      },
+      "widgets": [
+        { "slot": "homeClock", "type": "clock" },
+        { "slot": "homeTitle", "type": "headerTitle" },
+        { "slot": "homeBattery", "type": "battery" },
+        { "slot": "recents", "type": "recents" },
+        {
+          "slot": "launchers",
+          "type": "launcherGrid",
+          "columns": 2,
+          "gap": 4,
+          "items": [
+            { "text": "Files", "icon": "folder", "action": "activity:fileBrowser" },
+            { "text": "Recent", "icon": "recent", "action": "activity:recentBooks" },
+            { "text": "Library", "icon": "library", "action": "activity:opds" },
+            { "text": "Transfer", "icon": "transfer", "action": "activity:fileTransfer" },
+            { "text": "Settings", "icon": "settings", "action": "activity:settings" }
+          ]
+        },
+        { "slot": "buttons", "type": "buttonHints" }
+      ]
+    },
+    "fileBrowser": {
+      "layout": {
+        "axis": "column",
+        "gap": 16,
+        "slots": [
+          { "id": "top", "fixed": 5 },
+          { "id": "header", "fixed": 84 },
+          { "id": "list", "flex": 1 },
+          { "id": "path", "fixed": 14 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      }
+    },
+    "recentBooks": {
+      "layout": {
+        "axis": "column",
+        "gap": 16,
+        "slots": [
+          { "id": "top", "fixed": 5 },
+          { "id": "header", "fixed": 84 },
+          { "id": "list", "flex": 1 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      }
+    },
+    "settings": {
+      "layout": {
+        "axis": "column",
+        "gap": 0,
+        "slots": [
+          { "id": "top", "fixed": 5 },
+          { "id": "header", "fixed": 84 },
+          { "id": "tabs", "fixed": 40 },
+          { "id": "gap", "fixed": 16 },
+          { "id": "list", "flex": 1 },
+          { "id": "gap", "fixed": 16 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      }
+    },
+    "reader": {
+      "layout": {
+        "axis": "row",
+        "gap": 8,
+        "slots": [
+          { "id": "bookmark", "fixed": 18 },
+          { "id": "battery", "fixed": 66 },
+          { "id": "title", "flex": 1 },
+          { "id": "clock", "fixed": 42 },
+          { "id": "progress", "fixed": 82 }
+        ]
+      },
+      "chrome": {
+        "battery": {
+          "style": "icon",
+          "showPercentage": true
+        }
+      }
     }
   },
   "assets": {

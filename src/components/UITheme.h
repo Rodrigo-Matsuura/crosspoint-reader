@@ -21,6 +21,13 @@ class UITheme {
   const ThemeMetrics& getMetrics() const { return *currentMetrics; }
   const BaseTheme& getTheme() const { return *currentTheme; }
   std::vector<int> getHomeCoverThumbHeights() const;
+  const ThemeHomeScreenSpec* getHomeScreenSpec() const {
+    return currentSdHomeScreen.enabled ? &currentSdHomeScreen : nullptr;
+  }
+  const ThemeScreenSpec* getScreenSpec(ThemeScreenKind screen) const;
+  const ThemeReaderChromeSpec* getReaderChromeSpec() const {
+    return currentSdReaderChrome.battery.enabled ? &currentSdReaderChrome : nullptr;
+  }
   SdCardThemeRegistry& registry() { return themeRegistry; }
   void refreshRegistry();
   void releaseSdThemeAssetMemory();
@@ -49,6 +56,12 @@ class UITheme {
   ThemeButtonHintsSpec currentSdButtonHints;
   ThemeTabBarSpec currentSdTabBar;
   ThemeHeaderSpec currentSdHeader;
+  ThemeHomeScreenSpec currentSdHomeScreen;
+  ThemeScreenSpec currentSdFileBrowserScreen;
+  ThemeScreenSpec currentSdRecentBooksScreen;
+  ThemeScreenSpec currentSdSettingsScreen;
+  ThemeScreenSpec currentSdReaderScreen;
+  ThemeReaderChromeSpec currentSdReaderChrome;
   std::string currentSdThemePath;
   ThemeIconMap currentSdIcons;
   std::unique_ptr<BaseTheme> currentTheme;

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 #include "MappedInputManager.h"
 #include "RecentBooksStore.h"
@@ -128,24 +129,44 @@ void RecentBooksActivity::render(RenderLock&&) {
   const auto pageHeight = renderer.getScreenHeight();
   const auto& metrics = UITheme::getInstance().getMetrics();
 
-  GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.headerHeight}, tr(STR_MENU_RECENT_BOOKS));
+  const ThemeScreenSpec* screenSpec = UITheme::getInstance().getScreenSpec(ThemeScreenKind::RecentBooks);
+  std::vector<ThemeLayoutSlot> slots;
+  Rect headerRect{0, metrics.topPadding, pageWidth, metrics.headerHeight};
+  Rect listRect;
+  Rect buttonsRect{0, pageHeight - metrics.buttonHintsHeight, pageWidth, metrics.buttonHintsHeight};
 
-  const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
-  const int contentHeight = pageHeight - contentTop - metrics.buttonHintsHeight - metrics.verticalSpacing;
+  if (screenSpec != nullptr) {
+    layoutThemeSlots(screenSpec->layout, Rect{0, 0, pageWidth, pageHeight}, metrics, slots);
+    headerRect = findThemeSlot(slots, "header");
+    listRect = findThemeSlot(slots, "list");
+    buttonsRect = findThemeSlot(slots, "buttons");
+  } else {
+    const int contentTop = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
+    const int contentHeight = pageHeight - contentTop - metrics.buttonHintsHeight - metrics.verticalSpacing;
+    listRect = Rect{0, contentTop, pageWidth, contentHeight};
+  }
+
+  if (headerRect.width > 0 && headerRect.height > 0) {
+    GUI.drawHeader(renderer, headerRect, tr(STR_MENU_RECENT_BOOKS));
+  }
 
   // Recent tab
-  if (recentBooks.empty()) {
-    renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, contentTop + 20, tr(STR_NO_RECENT_BOOKS));
+  if (listRect.width <= 0 || listRect.height <= 0) {
+    // Malformed theme layout: no list slot to draw into.
+  } else if (recentBooks.empty()) {
+    renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, listRect.y + 20, tr(STR_NO_RECENT_BOOKS));
   } else {
     GUI.drawList(
-        renderer, Rect{0, contentTop, pageWidth, contentHeight}, recentBooks.size(), selectorIndex,
-        [this](int index) { return recentBooks[index].title; }, [this](int index) { return recentBooks[index].author; },
+        renderer, listRect, recentBooks.size(), selectorIndex, [this](int index) { return recentBooks[index].title; },
+        [this](int index) { return recentBooks[index].author; },
         [this](int index) { return UITheme::getFileIcon(recentBooks[index].path); });
   }
 
   // Help text
   const auto labels = mappedInput.mapLabels(tr(STR_HOME), tr(STR_OPEN), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
-  GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  if (buttonsRect.width > 0 && buttonsRect.height > 0) {
+    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  }
 
   renderer.displayBuffer();
 }

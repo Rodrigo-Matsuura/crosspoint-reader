@@ -353,6 +353,26 @@ void parseHeaderSpec(JsonObjectConst obj, ThemeHeaderSpec& spec) {
   spec.batteryOffsetY = obj["batteryOffsetY"] | spec.batteryOffsetY;
 }
 
+void parseReaderChromeSpec(JsonObjectConst obj, ThemeReaderChromeSpec& spec) {
+  if (obj.isNull()) return;
+
+  JsonObjectConst battery = obj["battery"].as<JsonObjectConst>();
+  if (!battery.isNull()) {
+    spec.battery.enabled = battery["enabled"] | true;
+    const char* style = battery["style"].as<const char*>();
+    if (style != nullptr) {
+      if (strcmp(style, "bar") == 0) {
+        spec.battery.style = ThemeBatteryIndicatorStyle::Bar;
+      } else {
+        spec.battery.style = ThemeBatteryIndicatorStyle::Icon;
+      }
+    }
+    spec.battery.width = battery["width"] | spec.battery.width;
+    spec.battery.height = battery["height"] | spec.battery.height;
+    spec.battery.showPercentage = battery["showPercentage"] | spec.battery.showPercentage;
+  }
+}
+
 bool iconForKey(const char* key, UIIcon& out) {
   if (key == nullptr) return false;
   if (strcmp(key, "folder") == 0 || strcmp(key, "folder24") == 0)
@@ -394,6 +414,150 @@ void parseIconMap(JsonObjectConst obj, ThemeIconMap& icons) {
       icons[icon] = path;
     }
   }
+}
+
+ThemeLayoutAxis parseLayoutAxis(const char* value) {
+  if (value != nullptr && strcmp(value, "row") == 0) return ThemeLayoutAxis::Row;
+  return ThemeLayoutAxis::Column;
+}
+
+ThemeLayoutSizeType parseLayoutSizeType(const char* value) {
+  if (value == nullptr) return ThemeLayoutSizeType::Flex;
+  if (strcmp(value, "fixed") == 0) return ThemeLayoutSizeType::Fixed;
+  if (strcmp(value, "token") == 0) return ThemeLayoutSizeType::Token;
+  return ThemeLayoutSizeType::Flex;
+}
+
+void parseLayoutNode(JsonObjectConst obj, ThemeLayoutNode& out, int depth = 0) {
+  if (obj.isNull() || depth > 5) return;
+  const char* id = obj["id"] | nullptr;
+  if (id == nullptr) id = obj["slot"] | nullptr;
+  if (id != nullptr) out.id = id;
+  out.axis = parseLayoutAxis(obj["axis"].as<const char*>());
+  out.gap = obj["gap"] | out.gap;
+
+  if (obj["fixed"].is<int>()) {
+    out.sizeType = ThemeLayoutSizeType::Fixed;
+    out.size = obj["fixed"] | out.size;
+  } else if (obj["size"].is<int>()) {
+    out.sizeType = ThemeLayoutSizeType::Fixed;
+    out.size = obj["size"] | out.size;
+  } else if (obj["size"].is<const char*>()) {
+    out.sizeType = ThemeLayoutSizeType::Token;
+    out.sizeToken = obj["size"] | "";
+  } else if (obj["flex"].is<int>()) {
+    out.sizeType = ThemeLayoutSizeType::Flex;
+    out.flex = std::max(1, obj["flex"] | out.flex);
+  } else {
+    out.sizeType = parseLayoutSizeType(obj["type"].as<const char*>());
+  }
+
+  JsonArrayConst children = obj["children"].as<JsonArrayConst>();
+  if (children.isNull()) children = obj["slots"].as<JsonArrayConst>();
+  if (!children.isNull()) {
+    out.children.clear();
+    for (JsonObjectConst childObj : children) {
+      if (out.children.size() >= 12) break;
+      ThemeLayoutNode child;
+      child.sizeType = ThemeLayoutSizeType::Flex;
+      parseLayoutNode(childObj, child, depth + 1);
+      out.children.push_back(child);
+    }
+  }
+}
+
+ThemeHomeWidgetType parseHomeWidgetType(const char* value) {
+  if (value == nullptr) return ThemeHomeWidgetType::LauncherList;
+  if (strcmp(value, "header") == 0) return ThemeHomeWidgetType::Header;
+  if (strcmp(value, "headerTitle") == 0 || strcmp(value, "title") == 0) return ThemeHomeWidgetType::HeaderTitle;
+  if (strcmp(value, "battery") == 0) return ThemeHomeWidgetType::Battery;
+  if (strcmp(value, "clock") == 0) return ThemeHomeWidgetType::Clock;
+  if (strcmp(value, "recents") == 0 || strcmp(value, "coverCarousel") == 0 || strcmp(value, "recentBook") == 0) {
+    return ThemeHomeWidgetType::Recents;
+  }
+  if (strcmp(value, "launcherGrid") == 0 || strcmp(value, "grid") == 0) return ThemeHomeWidgetType::LauncherGrid;
+  if (strcmp(value, "buttonHints") == 0 || strcmp(value, "buttons") == 0) return ThemeHomeWidgetType::ButtonHints;
+  return ThemeHomeWidgetType::LauncherList;
+}
+
+ThemeHomeAction parseHomeAction(const char* value) {
+  if (value == nullptr) return ThemeHomeAction::FileBrowser;
+  if (strcmp(value, "activity:recentBooks") == 0 || strcmp(value, "recentBooks") == 0) {
+    return ThemeHomeAction::RecentBooks;
+  }
+  if (strcmp(value, "activity:opds") == 0 || strcmp(value, "opds") == 0) return ThemeHomeAction::OpdsBrowser;
+  if (strcmp(value, "activity:fileTransfer") == 0 || strcmp(value, "fileTransfer") == 0) {
+    return ThemeHomeAction::FileTransfer;
+  }
+  if (strcmp(value, "activity:settings") == 0 || strcmp(value, "settings") == 0) return ThemeHomeAction::Settings;
+  if (strcmp(value, "reader:recent") == 0 || strcmp(value, "recentBook") == 0) return ThemeHomeAction::RecentBook;
+  return ThemeHomeAction::FileBrowser;
+}
+
+void parseHomeWidget(JsonObjectConst obj, ThemeHomeWidgetSpec& out) {
+  if (obj.isNull()) return;
+  out.slot = obj["slot"] | out.slot.c_str();
+  out.type = parseHomeWidgetType(obj["type"].as<const char*>());
+  out.columns = std::max(1, obj["columns"] | out.columns);
+  out.rows = obj["rows"] | out.rows;
+  out.gap = obj["gap"] | out.gap;
+
+  JsonArrayConst items = obj["items"].as<JsonArrayConst>();
+  if (!items.isNull()) {
+    out.launchers.clear();
+    for (JsonObjectConst itemObj : items) {
+      if (out.launchers.size() >= 12) break;
+      ThemeHomeLauncherSpec launcher;
+      launcher.text = itemObj["text"] | "";
+      UIIcon icon = UIIcon::None;
+      if (iconForKey(itemObj["icon"].as<const char*>(), icon)) launcher.icon = icon;
+      launcher.action = parseHomeAction(itemObj["action"].as<const char*>());
+      out.launchers.push_back(launcher);
+    }
+  }
+}
+
+void parseHomeScreenSpec(JsonObjectConst obj, ThemeHomeScreenSpec& out) {
+  if (obj.isNull()) return;
+  JsonObjectConst layoutObj = obj["layout"].as<JsonObjectConst>();
+  JsonArrayConst widgets = obj["widgets"].as<JsonArrayConst>();
+  if (layoutObj.isNull() || widgets.isNull()) return;
+
+  out.enabled = true;
+  out.layout = ThemeLayoutNode{};
+  out.layout.id = "root";
+  out.layout.sizeType = ThemeLayoutSizeType::Flex;
+  parseLayoutNode(layoutObj, out.layout);
+
+  out.widgets.clear();
+  for (JsonObjectConst widgetObj : widgets) {
+    if (out.widgets.size() >= 12) break;
+    ThemeHomeWidgetSpec widget;
+    parseHomeWidget(widgetObj, widget);
+    out.widgets.push_back(widget);
+  }
+}
+
+void parseScreenSpec(JsonObjectConst obj, ThemeScreenSpec& out) {
+  if (obj.isNull()) return;
+  JsonObjectConst layoutObj = obj["layout"].as<JsonObjectConst>();
+  if (layoutObj.isNull()) return;
+
+  out.enabled = true;
+  out.layout = ThemeLayoutNode{};
+  out.layout.id = "root";
+  out.layout.sizeType = ThemeLayoutSizeType::Flex;
+  parseLayoutNode(layoutObj, out.layout);
+}
+
+void applyTokenSizeOverrides(JsonObjectConst obj, ThemeMetrics& metrics) {
+  if (obj.isNull()) return;
+  metrics.headerHeight = obj["header"] | metrics.headerHeight;
+  metrics.listRowHeight = obj["row"] | metrics.listRowHeight;
+  metrics.listWithSubtitleRowHeight = obj["rowSubtitle"] | metrics.listWithSubtitleRowHeight;
+  metrics.menuRowHeight = obj["menuRow"] | metrics.menuRowHeight;
+  metrics.buttonHintsHeight = obj["footer"] | obj["buttonHints"] | metrics.buttonHintsHeight;
+  metrics.progressBarHeight = obj["progress"] | metrics.progressBarHeight;
 }
 
 ThemeMetrics defaultMetrics() { return LyraMetrics::values; }
@@ -476,6 +640,20 @@ bool SdCardThemeRegistry::parseThemeJson(const char* themeDirPath, SdCardThemeIn
   parseHeaderSpec(deviceObj["components"]["header"].as<JsonObjectConst>(), out.header);
   applyMetricOverrides(doc["metrics"].as<JsonObjectConst>(), out.metrics);
   applyMetricOverrides(deviceObj["metrics"].as<JsonObjectConst>(), out.metrics);
+  applyTokenSizeOverrides(doc["tokens"]["size"].as<JsonObjectConst>(), out.metrics);
+  applyTokenSizeOverrides(deviceObj["tokens"]["size"].as<JsonObjectConst>(), out.metrics);
+  parseHomeScreenSpec(doc["screens"]["home"].as<JsonObjectConst>(), out.homeScreen);
+  parseHomeScreenSpec(deviceObj["screens"]["home"].as<JsonObjectConst>(), out.homeScreen);
+  parseScreenSpec(doc["screens"]["fileBrowser"].as<JsonObjectConst>(), out.fileBrowserScreen);
+  parseScreenSpec(deviceObj["screens"]["fileBrowser"].as<JsonObjectConst>(), out.fileBrowserScreen);
+  parseScreenSpec(doc["screens"]["recentBooks"].as<JsonObjectConst>(), out.recentBooksScreen);
+  parseScreenSpec(deviceObj["screens"]["recentBooks"].as<JsonObjectConst>(), out.recentBooksScreen);
+  parseScreenSpec(doc["screens"]["settings"].as<JsonObjectConst>(), out.settingsScreen);
+  parseScreenSpec(deviceObj["screens"]["settings"].as<JsonObjectConst>(), out.settingsScreen);
+  parseScreenSpec(doc["screens"]["reader"].as<JsonObjectConst>(), out.readerScreen);
+  parseScreenSpec(deviceObj["screens"]["reader"].as<JsonObjectConst>(), out.readerScreen);
+  parseReaderChromeSpec(doc["screens"]["reader"]["chrome"].as<JsonObjectConst>(), out.readerChrome);
+  parseReaderChromeSpec(deviceObj["screens"]["reader"]["chrome"].as<JsonObjectConst>(), out.readerChrome);
   if ((out.buttonMenu.enabled && out.buttonMenu.showIcons) || (out.list.enabled && out.list.showIcons)) {
     parseIconMap(doc["assets"]["icons"].as<JsonObjectConst>(), out.icons);
     parseIconMap(deviceObj["assets"]["icons"].as<JsonObjectConst>(), out.icons);

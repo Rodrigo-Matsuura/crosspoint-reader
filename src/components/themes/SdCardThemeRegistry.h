@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "components/themes/BaseTheme.h"
+#include "components/themes/ThemeLayout.h"
 
 // Theme's declared design resolution (portrait). Used to scale the theme's pixel
 // metrics to the actual device panel (see scaleThemeMetrics in UITheme.cpp).
@@ -25,6 +26,12 @@ struct SdCardThemeInfo {
   ThemeButtonHintsSpec buttonHints;
   ThemeTabBarSpec tabBar;
   ThemeHeaderSpec header;
+  ThemeHomeScreenSpec homeScreen;
+  ThemeScreenSpec fileBrowserScreen;
+  ThemeScreenSpec recentBooksScreen;
+  ThemeScreenSpec settingsScreen;
+  ThemeScreenSpec readerScreen;
+  ThemeReaderChromeSpec readerChrome;
   ThemeIconMap icons;
   SdThemeDeviceConstraints constraints;
 };

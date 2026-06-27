@@ -114,6 +114,7 @@ enum class ThemeSlotX { Padding, Center, RightPadding };
 enum class ThemeSlotY { Top, Center };
 enum class ThemeMenuSelectionStyle { Fill, Outline, Triangle, Underline, Pill };
 enum class ThemeButtonHintsStyle { Buttons, Shapes, Groups };
+enum class ThemeBatteryIndicatorStyle { Icon, Bar };
 
 struct ThemeTitleSpec {
   bool enabled = false;
@@ -244,6 +245,18 @@ struct ThemeHeaderSpec {
   bool showDivider = true;
   int titleOffsetY = 0;
   int batteryOffsetY = 5;
+};
+
+struct ThemeReaderBatterySpec {
+  bool enabled = false;
+  ThemeBatteryIndicatorStyle style = ThemeBatteryIndicatorStyle::Icon;
+  int width = 0;
+  int height = 0;
+  bool showPercentage = true;
+};
+
+struct ThemeReaderChromeSpec {
+  ThemeReaderBatterySpec battery;
 };
 
 enum UIIcon { None = 0, Folder, Text, Image, Book, File, Recent, Settings, Transfer, Library, Wifi, Hotspot, Bookmark };

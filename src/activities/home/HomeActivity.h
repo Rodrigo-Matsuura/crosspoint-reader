@@ -5,6 +5,7 @@
 
 #include "./FileBrowserActivity.h"
 #include "activities/Activity.h"
+#include "components/themes/ThemeLayout.h"
 #include "util/ButtonNavigator.h"
 
 struct RecentBook;
@@ -33,6 +34,11 @@ class HomeActivity final : public Activity {
   int coverRectH = 0;
   std::vector<RecentBook> recentBooks;
   const HomeMenuItem initialMenuItem;
+
+  struct HomeActionEntry {
+    ThemeHomeAction action = ThemeHomeAction::FileBrowser;
+    int value = 0;
+  };
 
   // Convert HomeMenuItem to menu index (used in onEnter)
   static int menuItemToIndex(HomeMenuItem item, bool hasOpdsUrl) {
@@ -66,6 +72,7 @@ class HomeActivity final : public Activity {
   void onFileTransferOpen();
   void onOpdsBrowserOpen();
 
+  void buildHomeActions(std::vector<HomeActionEntry>& actions) const;
   int getMenuItemCount() const;
   bool storeCoverBuffer();    // Store frame buffer for cover image
   bool restoreCoverBuffer();  // Restore frame buffer from stored cover

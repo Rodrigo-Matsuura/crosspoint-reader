@@ -370,58 +370,76 @@ void SettingsActivity::render(RenderLock&&) {
 
   const auto& metrics = UITheme::getInstance().getMetrics();
 
-  GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.headerHeight}, tr(STR_SETTINGS_TITLE),
-                 CROSSPOINT_VERSION);
+  const ThemeScreenSpec* screenSpec = UITheme::getInstance().getScreenSpec(ThemeScreenKind::Settings);
+  std::vector<ThemeLayoutSlot> slots;
+  Rect headerRect{0, metrics.topPadding, pageWidth, metrics.headerHeight};
+  Rect tabsRect{0, metrics.topPadding + metrics.headerHeight, pageWidth, metrics.tabBarHeight};
+  Rect listRect{0, metrics.topPadding + metrics.headerHeight + metrics.tabBarHeight + metrics.verticalSpacing,
+                pageWidth,
+                pageHeight - (metrics.topPadding + metrics.headerHeight + metrics.tabBarHeight +
+                              metrics.buttonHintsHeight + metrics.verticalSpacing * 2)};
+  Rect buttonsRect{0, pageHeight - metrics.buttonHintsHeight, pageWidth, metrics.buttonHintsHeight};
+
+  if (screenSpec != nullptr) {
+    layoutThemeSlots(screenSpec->layout, Rect{0, 0, pageWidth, pageHeight}, metrics, slots);
+    headerRect = findThemeSlot(slots, "header");
+    tabsRect = findThemeSlot(slots, "tabs");
+    listRect = findThemeSlot(slots, "list");
+    buttonsRect = findThemeSlot(slots, "buttons");
+  }
+
+  if (headerRect.width > 0 && headerRect.height > 0) {
+    GUI.drawHeader(renderer, headerRect, tr(STR_SETTINGS_TITLE), CROSSPOINT_VERSION);
+  }
 
   std::vector<TabInfo> tabs;
   tabs.reserve(categoryCount);
   for (int i = 0; i < categoryCount; i++) {
     tabs.push_back({I18N.get(categoryNames[i]), selectedCategoryIndex == i});
   }
-  GUI.drawTabBar(renderer, Rect{0, metrics.topPadding + metrics.headerHeight, pageWidth, metrics.tabBarHeight}, tabs,
-                 selectedSettingIndex == 0);
+  if (tabsRect.width > 0 && tabsRect.height > 0) {
+    GUI.drawTabBar(renderer, tabsRect, tabs, selectedSettingIndex == 0);
+  }
 
   const auto& settings = *currentSettings;
-  GUI.drawList(
-      renderer,
-      Rect{0, metrics.topPadding + metrics.headerHeight + metrics.tabBarHeight + metrics.verticalSpacing, pageWidth,
-           pageHeight - (metrics.topPadding + metrics.headerHeight + metrics.tabBarHeight + metrics.buttonHintsHeight +
-                         metrics.verticalSpacing * 2)},
-      settingsCount, selectedSettingIndex - 1,
-      [&settings](int index) { return std::string(I18N.get(settings[index].nameId)); }, nullptr, nullptr,
-      [&settings](int i) {
-        const auto& setting = settings[i];
-        std::string valueText = "";
-        if (setting.type == SettingType::TOGGLE && setting.valuePtr != nullptr) {
-          const bool value = SETTINGS.*(setting.valuePtr);
-          valueText = value ? tr(STR_STATE_ON) : tr(STR_STATE_OFF);
-        } else if (setting.type == SettingType::ENUM && setting.valuePtr != nullptr) {
-          const uint8_t value = SETTINGS.*(setting.valuePtr);
-          valueText = I18N.get(setting.enumValues[value]);
-        } else if (setting.type == SettingType::ENUM && setting.valueGetter) {
-          const uint8_t value = setting.valueGetter();
-          if (!setting.enumStringValues.empty() && value < setting.enumStringValues.size()) {
-            valueText = setting.enumStringValues[value];
-          } else if (value < setting.enumValues.size()) {
+  if (listRect.width > 0 && listRect.height > 0) {
+    GUI.drawList(
+        renderer, listRect, settingsCount, selectedSettingIndex - 1,
+        [&settings](int index) { return std::string(I18N.get(settings[index].nameId)); }, nullptr, nullptr,
+        [&settings](int i) {
+          const auto& setting = settings[i];
+          std::string valueText = "";
+          if (setting.type == SettingType::TOGGLE && setting.valuePtr != nullptr) {
+            const bool value = SETTINGS.*(setting.valuePtr);
+            valueText = value ? tr(STR_STATE_ON) : tr(STR_STATE_OFF);
+          } else if (setting.type == SettingType::ENUM && setting.valuePtr != nullptr) {
+            const uint8_t value = SETTINGS.*(setting.valuePtr);
             valueText = I18N.get(setting.enumValues[value]);
-          }
-        } else if (setting.type == SettingType::VALUE && setting.valuePtr != nullptr) {
-          if (setting.nameId == StrId::STR_TIME_TO_SLEEP) {
-            char valueBuffer[32];
-            if (SETTINGS.sleepTimeoutMinutes >= CrossPointSettings::SLEEP_TIMEOUT_NEVER_MINUTES) {
-              valueText = tr(STR_SLEEP_NEVER);
-            } else {
-              snprintf(valueBuffer, sizeof(valueBuffer), tr(STR_SLEEP_TIMER_VALUE_FORMAT),
-                       static_cast<unsigned int>(SETTINGS.*(setting.valuePtr)));
-              valueText = valueBuffer;
+          } else if (setting.type == SettingType::ENUM && setting.valueGetter) {
+            const uint8_t value = setting.valueGetter();
+            if (!setting.enumStringValues.empty() && value < setting.enumStringValues.size()) {
+              valueText = setting.enumStringValues[value];
+            } else if (value < setting.enumValues.size()) {
+              valueText = I18N.get(setting.enumValues[value]);
             }
-          } else {
-            valueText = std::to_string(SETTINGS.*(setting.valuePtr));
+          } else if (setting.type == SettingType::VALUE && setting.valuePtr != nullptr) {
+            if (setting.nameId == StrId::STR_TIME_TO_SLEEP) {
+              char valueBuffer[32];
+              if (SETTINGS.sleepTimeoutMinutes >= CrossPointSettings::SLEEP_TIMEOUT_NEVER_MINUTES) {
+                valueText = tr(STR_SLEEP_NEVER);
+              } else {
+                snprintf(valueBuffer, sizeof(valueBuffer), tr(STR_SLEEP_TIMER_VALUE_FORMAT),
+                         static_cast<unsigned int>(SETTINGS.*(setting.valuePtr)));
+                valueText = valueBuffer;
+              }
+            } else {
+              valueText = std::to_string(SETTINGS.*(setting.valuePtr));
+            }
           }
-        }
-        return valueText;
-      },
-      true);
+          return valueText;
+        },
+        true);
+  }
 
   // Draw help text
   const auto confirmLabel =
@@ -431,7 +449,9 @@ void SettingsActivity::render(RenderLock&&) {
                  ? tr(STR_SELECT)
                  : tr(STR_TOGGLE));
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), confirmLabel, tr(STR_DIR_UP), tr(STR_DIR_DOWN));
-  GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  if (buttonsRect.width > 0 && buttonsRect.height > 0) {
+    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  }
 
   // Always use standard refresh for settings screen
   renderer.displayBuffer();

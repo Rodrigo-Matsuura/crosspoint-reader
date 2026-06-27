@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": 2,
+  "version": 3,
   "id": "super-minimal",
   "name": "Super Minimal",
   "description": "A quiet text-only theme with no cover area, centered home options, underline selection, and icon-only hints.",
@@ -84,6 +84,91 @@
       "shapes": true,
       "shapeSize": 18,
       "textOffsetY": 7
+    }
+  },
+  "screens": {
+    "home": {
+      "layout": {
+        "axis": "column",
+        "gap": 0,
+        "slots": [
+          { "id": "header", "fixed": 48 },
+          { "id": "menu", "flex": 1 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      },
+      "widgets": [
+        { "slot": "header", "type": "header" },
+        {
+          "slot": "menu",
+          "type": "launcherList",
+          "items": [
+            { "text": "Continue", "icon": "book", "action": "reader:recent" },
+            { "text": "Files", "icon": "folder", "action": "activity:fileBrowser" },
+            { "text": "Recent", "icon": "recent", "action": "activity:recentBooks" },
+            { "text": "Library", "icon": "library", "action": "activity:opds" },
+            { "text": "Transfer", "icon": "transfer", "action": "activity:fileTransfer" },
+            { "text": "Settings", "icon": "settings", "action": "activity:settings" }
+          ]
+        },
+        { "slot": "buttons", "type": "buttonHints" }
+      ]
+    },
+    "fileBrowser": {
+      "layout": {
+        "axis": "column",
+        "gap": 8,
+        "slots": [
+          { "id": "header", "fixed": 48 },
+          { "id": "list", "flex": 1 },
+          { "id": "path", "fixed": 14 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      }
+    },
+    "recentBooks": {
+      "layout": {
+        "axis": "column",
+        "gap": 8,
+        "slots": [
+          { "id": "header", "fixed": 48 },
+          { "id": "list", "flex": 1 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      }
+    },
+    "settings": {
+      "layout": {
+        "axis": "column",
+        "gap": 0,
+        "slots": [
+          { "id": "header", "fixed": 48 },
+          { "id": "tabs", "fixed": 36 },
+          { "id": "list", "flex": 1 },
+          { "id": "buttons", "fixed": 40 }
+        ]
+      }
+    },
+    "reader": {
+      "layout": {
+        "axis": "row",
+        "gap": 8,
+        "slots": [
+          { "id": "bookmark", "fixed": 18 },
+          { "id": "battery", "fixed": 38 },
+          { "id": "title", "flex": 1 },
+          { "id": "clock", "fixed": 42 },
+          { "id": "progress", "fixed": 82 }
+        ]
+      },
+      "chrome": {
+        "battery": {
+          "style": "bar",
+          "width": 38,
+          "height": 3,
+          "showPercentage": false
+        }
+      }
     }
   },
   "extensions": {

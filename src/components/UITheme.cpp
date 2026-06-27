@@ -167,6 +167,22 @@ std::vector<int> UITheme::getHomeCoverThumbHeights() const {
   return heights;
 }
 
+const ThemeScreenSpec* UITheme::getScreenSpec(ThemeScreenKind screen) const {
+  switch (screen) {
+    case ThemeScreenKind::FileBrowser:
+      return currentSdFileBrowserScreen.enabled ? &currentSdFileBrowserScreen : nullptr;
+    case ThemeScreenKind::RecentBooks:
+      return currentSdRecentBooksScreen.enabled ? &currentSdRecentBooksScreen : nullptr;
+    case ThemeScreenKind::Settings:
+      return currentSdSettingsScreen.enabled ? &currentSdSettingsScreen : nullptr;
+    case ThemeScreenKind::Reader:
+      return currentSdReaderScreen.enabled ? &currentSdReaderScreen : nullptr;
+    case ThemeScreenKind::Home:
+    default:
+      return nullptr;
+  }
+}
+
 void UITheme::reload() {
   if (SETTINGS.sdThemeName[0] != '\0') {
     const SdCardThemeInfo* themeInfo = themeRegistry.findTheme(SETTINGS.sdThemeName);
@@ -200,6 +216,12 @@ void UITheme::reload() {
     currentSdButtonHints = themeInfo->buttonHints;
     currentSdTabBar = themeInfo->tabBar;
     currentSdHeader = themeInfo->header;
+    currentSdHomeScreen = themeInfo->homeScreen;
+    currentSdFileBrowserScreen = themeInfo->fileBrowserScreen;
+    currentSdRecentBooksScreen = themeInfo->recentBooksScreen;
+    currentSdSettingsScreen = themeInfo->settingsScreen;
+    currentSdReaderScreen = themeInfo->readerScreen;
+    currentSdReaderChrome = themeInfo->readerChrome;
     currentSdThemePath = themeInfo->path;
     currentSdIcons = themeInfo->icons;
     const bool inheritsClassic = themeInfo->inherits == "classic";
@@ -266,6 +288,12 @@ void UITheme::setTheme(CrossPointSettings::UI_THEME type) {
   currentSdButtonHints = ThemeButtonHintsSpec{};
   currentSdTabBar = ThemeTabBarSpec{};
   currentSdHeader = ThemeHeaderSpec{};
+  currentSdHomeScreen = ThemeHomeScreenSpec{};
+  currentSdFileBrowserScreen = ThemeScreenSpec{};
+  currentSdRecentBooksScreen = ThemeScreenSpec{};
+  currentSdSettingsScreen = ThemeScreenSpec{};
+  currentSdReaderScreen = ThemeScreenSpec{};
+  currentSdReaderChrome = ThemeReaderChromeSpec{};
   currentSdThemePath.clear();
   currentSdIcons.clear();
   themeRegistry.clear();
