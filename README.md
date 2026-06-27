@@ -142,7 +142,7 @@ After adding or changing a hosted theme, regenerate the download manifest:
 ```bash
 python3 scripts/generate-theme-manifest.py \
   --root sd-themes \
-  --base-url http://raw.githubusercontent.com/crosspoint-reader/crosspoint-reader/feat-sd-theme-system/sd-themes \
+  --base-url http://crosspointreader.com/themes \
   --output sd-themes/themes.json
 ```
 

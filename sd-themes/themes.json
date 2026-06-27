@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "baseUrl": "http://raw.githubusercontent.com/crosspoint-reader/crosspoint-reader/feat-sd-theme-system/sd-themes",
+  "baseUrl": "http://crosspointreader.com/themes",
   "themes": [
     {
       "id": "carousel",
